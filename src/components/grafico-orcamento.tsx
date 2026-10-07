@@ -1,0 +1,337 @@
+/**
+ * Gráfico de rosca interativo: como o gasto se divide entre as categorias com orçamento.
+ * - Cada fatia é uma categoria (cor fixa por categoria), do maior gasto para o menor, a partir do topo.
+ * - O centro mostra o total ou, com uma categoria selecionada, quanto do limite dela foi usado.
+ * - Tocar numa fatia ou na legenda seleciona; tocar de novo (ou no centro) desfaz.
+ * - A legenda abaixo repete os números e é o caminho acessível (leitor de tela) para escolher.
+ */
+
+import { useEffect } from 'react';
+import { type GestureResponderEvent, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
+
+import {
+  EtiquetaSituacao,
+  IconeSituacao,
+  ROTULO_SITUACAO,
+  useCorSituacao,
+} from '@/components/situacao-orcamento';
+import { ThemedText } from '@/components/themed-text';
+import { SeriesColors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
+import {
+  LIMITE_ATENCAO,
+  montarFatias,
+  type FatiaOrcamento,
+  type StatusOrcamento,
+} from '@/services/orcamento-service';
+import { formatarCentavos } from '@/utils/moeda';
+
+const TAMANHO = 224;
+const ESPESSURA = 28;
+const ESPESSURA_SELECIONADA = 38;
+const RAIO = (TAMANHO - ESPESSURA_SELECIONADA) / 2;
+const CENTRO = TAMANHO / 2;
+const CIRCUNFERENCIA = 2 * Math.PI * RAIO;
+/** Vão entre fatias (na cor do fundo), em pixels de arco */
+const VAO = 3;
+
+const CirculoAnimado = Animated.createAnimatedComponent(Circle);
+
+type Props = {
+  itens: StatusOrcamento[];
+  selecionadoId: number | null;
+  aoSelecionar: (categoriaId: number | null) => void;
+};
+
+function useCoresSeries() {
+  const esquema = useColorScheme() === 'dark' ? 'dark' : 'light';
+  return {
+    cor: (fatia: Pick<FatiaOrcamento, 'indiceCor'>) =>
+      fatia.indiceCor === null ? SeriesColors.outras[esquema] : SeriesColors[esquema][fatia.indiceCor],
+  };
+}
+
+export function GraficoOrcamento({ itens, selecionadoId, aoSelecionar }: Props) {
+  const theme = useTheme();
+  const { cor } = useCoresSeries();
+  const corSituacao = useCorSituacao();
+  const fatias = montarFatias(itens);
+  const selecionado = itens.find((i) => i.categoriaId === selecionadoId) ?? null;
+
+  const totalGasto = itens.reduce((s, i) => s + i.gastoCentavos, 0);
+  const totalLimites = itens.reduce((s, i) => s + i.limiteCentavos, 0);
+
+  const progresso = useSharedValue(0);
+  useEffect(() => {
+    progresso.value = withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) });
+  }, [progresso]);
+
+  function alternar(categoriaId: number | null) {
+    aoSelecionar(categoriaId === null || categoriaId === selecionadoId ? null : categoriaId);
+  }
+
+  // Descobre qual fatia foi tocada pelo ângulo do toque em relação ao centro.
+  function aoTocarNoGrafico(evento: GestureResponderEvent) {
+    const dx = evento.nativeEvent.locationX - CENTRO;
+    const dy = evento.nativeEvent.locationY - CENTRO;
+    const distancia = Math.hypot(dx, dy);
+    if (distancia < RAIO - ESPESSURA_SELECIONADA / 2 - 4) {
+      aoSelecionar(null); // toque no centro
+      return;
+    }
+    if (distancia > RAIO + ESPESSURA_SELECIONADA / 2 + 12) return;
+    const angulo = ((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360;
+    const posicao = angulo / 360;
+    const fatia = fatias.find((f) => posicao >= f.inicio && posicao < f.inicio + f.fracao);
+    if (fatia?.categoriaId != null) alternar(fatia.categoriaId);
+  }
+
+  const resumoAcessivel =
+    fatias.length === 0
+      ? 'Gráfico de rosca vazio: ainda não há gastos nas categorias com orçamento.'
+      : `Gráfico de rosca do gasto por categoria: ${fatias
+          .map((f) => `${f.nome} ${Math.round(f.fracao * 100)}%`)
+          .join(', ')}.`;
+
+  return (
+    <View style={styles.container}>
+      <Pressable
+        onPress={aoTocarNoGrafico}
+        accessibilityLabel={resumoAcessivel}
+        accessibilityHint="Use a lista abaixo para escolher uma categoria"
+        style={styles.grafico}>
+        <Svg width={TAMANHO} height={TAMANHO}>
+          {fatias.length === 0 ? (
+            <Circle
+              cx={CENTRO}
+              cy={CENTRO}
+              r={RAIO}
+              fill="none"
+              stroke={theme.chartGrid}
+              strokeWidth={ESPESSURA}
+            />
+          ) : (
+            fatias.map((f) => (
+              <Fatia
+                key={f.categoriaId ?? 'outras'}
+                fatia={f}
+                cor={cor(f)}
+                unica={fatias.length === 1}
+                selecionada={f.categoriaId !== null && f.categoriaId === selecionadoId}
+                apagada={selecionadoId !== null && f.categoriaId !== selecionadoId}
+                progresso={progresso}
+              />
+            ))
+          )}
+        </Svg>
+
+        {/* Centro da rosca */}
+        <View style={styles.centro} pointerEvents="none">
+          {selecionado ? (
+            <>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.textoCentro}>
+                {selecionado.nome}
+              </ThemedText>
+              <ThemedText style={styles.valorCentro} numberOfLines={1} adjustsFontSizeToFit>
+                {formatarCentavos(selecionado.gastoCentavos)}
+              </ThemedText>
+              <View style={styles.linhaCentro}>
+                <IconeSituacao situacao={selecionado.situacao} cor={corSituacao(selecionado.situacao)} />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {Math.floor(selecionado.percentual)}% do limite
+                </ThemedText>
+              </View>
+            </>
+          ) : (
+            <>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.textoCentro}>
+                Gasto no mês
+              </ThemedText>
+              <ThemedText style={styles.valorCentro} numberOfLines={1} adjustsFontSizeToFit>
+                {formatarCentavos(totalGasto)}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.textoCentro}>
+                de {formatarCentavos(totalLimites)}
+              </ThemedText>
+            </>
+          )}
+        </View>
+      </Pressable>
+
+      {/* Legenda = lista acessível com os mesmos números */}
+      <View style={styles.legenda} accessibilityRole="radiogroup">
+        {[...itens]
+          .sort((a, b) => b.gastoCentavos - a.gastoCentavos)
+          .map((item) => {
+            const fatia = fatias.find((f) => f.categoriaId === item.categoriaId);
+            const ativo = item.categoriaId === selecionadoId;
+            const participacao = fatia ? Math.round(fatia.fracao * 100) : 0;
+            return (
+              <Pressable
+                key={item.categoriaId}
+                onPress={() => alternar(item.categoriaId)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: ativo }}
+                accessibilityLabel={`${item.nome}: ${formatarCentavos(item.gastoCentavos)}, ${participacao}% do gasto, ${Math.floor(item.percentual)}% do limite de ${formatarCentavos(item.limiteCentavos)}. ${ROTULO_SITUACAO[item.situacao]}`}
+                style={({ pressed }) => [
+                  styles.itemLegenda,
+                  ativo && { backgroundColor: theme.backgroundSelected },
+                  selecionadoId !== null && !ativo && styles.apagado,
+                  pressed && styles.pressionado,
+                ]}>
+                <View
+                  style={[
+                    styles.amostra,
+                    fatia
+                      ? { backgroundColor: cor(fatia) }
+                      : { borderWidth: 2, borderColor: theme.chartBaseline },
+                  ]}
+                />
+                <View style={styles.flex}>
+                  <ThemedText type="small" numberOfLines={1}>
+                    {item.nome}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {participacao}% do gasto
+                  </ThemedText>
+                </View>
+                <View style={styles.valoresLegenda}>
+                  <ThemedText type="smallBold">{formatarCentavos(item.gastoCentavos)}</ThemedText>
+                  <View style={styles.linhaCentro}>
+                    <IconeSituacao situacao={item.situacao} cor={corSituacao(item.situacao)} />
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {Math.floor(item.percentual)}% do limite
+                    </ThemedText>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
+      </View>
+
+      {/* O que significam os ícones de situação */}
+      <View style={styles.legendaSituacao}>
+        <EtiquetaSituacao situacao="dentro" />
+        <EtiquetaSituacao situacao="atencao" texto={`Atenção (${LIMITE_ATENCAO}%+)`} />
+        <EtiquetaSituacao situacao="ultrapassou" />
+      </View>
+    </View>
+  );
+}
+
+function Fatia({
+  fatia,
+  cor,
+  unica,
+  selecionada,
+  apagada,
+  progresso,
+}: {
+  fatia: FatiaOrcamento;
+  cor: string;
+  unica: boolean;
+  selecionada: boolean;
+  apagada: boolean;
+  progresso: SharedValue<number>;
+}) {
+  const vao = unica ? 0 : VAO;
+  const comprimento = Math.max(fatia.fracao * CIRCUNFERENCIA - vao, 0.5);
+  // Começa meio vão depois do início, para o vão ficar centrado entre duas fatias.
+  const rotacao = -90 + fatia.inicio * 360 + ((vao / 2) / CIRCUNFERENCIA) * 360;
+
+  const propsAnimadas = useAnimatedProps(() => ({
+    strokeDasharray: `${comprimento * progresso.value} ${CIRCUNFERENCIA}`,
+  }));
+
+  return (
+    <CirculoAnimado
+      cx={CENTRO}
+      cy={CENTRO}
+      r={RAIO}
+      fill="none"
+      stroke={cor}
+      strokeWidth={selecionada ? ESPESSURA_SELECIONADA : ESPESSURA}
+      strokeOpacity={apagada ? 0.3 : 1}
+      transform={`rotate(${rotacao} ${CENTRO} ${CENTRO})`}
+      animatedProps={propsAnimadas}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+  },
+  grafico: {
+    width: TAMANHO,
+    height: TAMANHO,
+    alignSelf: 'center',
+  },
+  centro: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: ESPESSURA_SELECIONADA + Spacing.two,
+  },
+  textoCentro: {
+    textAlign: 'center',
+  },
+  valorCentro: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: 700,
+    textAlign: 'center',
+  },
+  linhaCentro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  legenda: {
+    gap: Spacing.half,
+  },
+  itemLegenda: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.two,
+    borderRadius: Spacing.two,
+  },
+  amostra: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  flex: {
+    flex: 1,
+  },
+  valoresLegenda: {
+    alignItems: 'flex-end',
+    gap: Spacing.half,
+  },
+  legendaSituacao: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+  },
+  apagado: {
+    opacity: 0.5,
+  },
+  pressionado: {
+    opacity: 0.6,
+  },
+});
