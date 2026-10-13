@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SeloNivel } from '@/components/selo-nivel';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -36,15 +37,22 @@ export function AvisoConquista() {
         key={atual.id}
         entering={FadeInUp.duration(350)}
         exiting={FadeOutUp.duration(250)}
-        style={[styles.aviso, { backgroundColor: theme.text }]}
+        style={[
+          styles.aviso,
+          { backgroundColor: theme.backgroundElement, borderColor: theme.border, boxShadow: `0 10px 30px ${theme.brilho}` },
+        ]}
         accessibilityLiveRegion="polite"
         accessibilityLabel={`Nova conquista: ${atual.nome}. ${atual.descricao}`}>
-        <ThemedText style={styles.icone}>{atual.icone}</ThemedText>
+        <View>
+          <SeloNivel tamanho={52} icone="trofeu" />
+          <ThemedText style={styles.icone}>{atual.icone}</ThemedText>
+        </View>
         <View style={styles.flex}>
-          <ThemedText type="smallBold" style={{ color: theme.background }}>
-            Nova conquista: {atual.nome}
+          <ThemedText type="small" style={{ color: theme.accentText }}>
+            Parabéns! Nova conquista
           </ThemedText>
-          <ThemedText type="small" style={{ color: theme.background }}>
+          <ThemedText type="smallBold">{atual.nome}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
             {atual.descricao} +50 XP
           </ThemedText>
         </View>
@@ -65,11 +73,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     padding: Spacing.three,
-    borderRadius: Spacing.three,
+    borderRadius: Spacing.four,
+    borderWidth: StyleSheet.hairlineWidth,
   },
+  // O emoji da conquista fica num cantinho do selo
   icone: {
-    fontSize: 28,
-    lineHeight: 34,
+    position: 'absolute',
+    right: -6,
+    bottom: -4,
+    fontSize: 20,
+    lineHeight: 24,
   },
   flex: {
     flex: 1,

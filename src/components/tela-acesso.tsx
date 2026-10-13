@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LogoEcoTrust } from '@/components/logo-ecotrust';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -16,12 +17,14 @@ export function TelaAcesso({ titulo, subtitulo, children }: { titulo: string; su
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
             <View style={styles.marca}>
-              <View style={[styles.logo, { backgroundColor: theme.accent }]}>
-                <ThemedText style={[styles.letraLogo, { color: theme.onAccent }]}>E</ThemedText>
+              <View style={[styles.logo, { boxShadow: `0 0 48px ${theme.brilho}` }]}>
+                <LogoEcoTrust tamanho={88} />
               </View>
-              <ThemedText style={styles.nomeMarca}>EcoTrust</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                Seu assistente financeiro pessoal
+              <ThemedText style={styles.nomeMarca} accessibilityRole="header">
+                EcoTrust
+              </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.lema}>
+                Mais controle. Melhores decisões.{'\n'}Seu futuro financeiro.
               </ThemedText>
             </View>
             <View style={styles.cabecalho}>
@@ -63,21 +66,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.three,
   },
   logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  letraLogo: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: 800,
-  },
   nomeMarca: {
-    fontSize: 26,
-    lineHeight: 34,
-    fontWeight: 800,
+    fontSize: 36,
+    lineHeight: 44,
+    fontWeight: 700,
+    letterSpacing: -0.5,
+  },
+  lema: {
+    textAlign: 'center',
   },
   cabecalho: {
     gap: Spacing.one,

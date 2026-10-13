@@ -5,6 +5,7 @@ import { AppState, useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AvisoConquista } from '@/components/aviso-conquista';
+import { Colors } from '@/constants/theme';
 import { usePerfilFinanceiro } from '@/hooks/use-dados';
 import { useSessao } from '@/hooks/use-sessao';
 import { iniciarSincronizacaoJornada } from '@/services/celebracao-service';
@@ -45,6 +46,16 @@ function useBloqueioAutomatico() {
   }, []);
 }
 
+/** Cores da navegação iguais às do app (evita o fundo branco piscando entre telas no tema escuro). */
+function temaNavegacao(esquema: 'light' | 'dark') {
+  const base = esquema === 'dark' ? DarkTheme : DefaultTheme;
+  const c = Colors[esquema];
+  return {
+    ...base,
+    colors: { ...base.colors, background: c.background, card: c.background, text: c.text, border: c.border, primary: c.accent },
+  };
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { temConta, logado } = useSessao();
@@ -54,7 +65,7 @@ export default function RootLayout() {
   useJornadaAutomatica(logado && temPerfil);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={temaNavegacao(colorScheme === 'light' ? 'light' : 'dark')}>
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         {/*
@@ -83,6 +94,8 @@ export default function RootLayout() {
           <Stack.Screen name="editar-meta/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="movimentar-meta/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="saude-financeira" />
+          <Stack.Screen name="insights" />
+          <Stack.Screen name="orcamento" />
           <Stack.Screen name="assinatura" options={{ presentation: 'modal' }} />
           <Stack.Screen name="academy/curso/[id]" />
           <Stack.Screen name="academy/aula/[id]" />

@@ -1,6 +1,7 @@
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { BarraProgresso } from '@/components/barra-progresso';
+import { SeloNivel } from '@/components/selo-nivel';
 import { Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -16,17 +17,16 @@ export function CartaoJornada({ jornada }: { jornada: Jornada }) {
   return (
     <Cartao>
       <View style={styles.linha}>
-        <View style={[styles.selo, { backgroundColor: theme.accent }]}>
-          <ThemedText type="smallBold" style={{ color: theme.onAccent }}>
-            Nível {jornada.nivel}
+        <SeloNivel tamanho={72} numero={jornada.nivel} />
+        <View style={styles.flex}>
+          <ThemedText style={styles.tituloNivel}>Nível {jornada.nivel}</ThemedText>
+          <ThemedText type="small" style={{ color: theme.accentText }}>
+            {jornada.nomeNivel} · {jornada.xp} XP
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Você está evoluindo!
           </ThemedText>
         </View>
-        <ThemedText type="smallBold" style={styles.flex}>
-          {jornada.nomeNivel}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {jornada.xp} XP
-        </ThemedText>
       </View>
       <BarraProgresso
         percentual={percentual}
@@ -126,10 +126,10 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  selo: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 2,
-    borderRadius: Spacing.two,
+  tituloNivel: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: 700,
   },
   numeros: {
     flexDirection: 'row',

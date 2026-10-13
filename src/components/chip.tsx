@@ -28,6 +28,9 @@ export function Chip({ texto, ativo, aoTocar }: Props) {
           backgroundColor: ativo ? theme.accent : theme.backgroundElement,
           borderColor: ativo ? theme.accent : theme.border,
         },
+        ativo && {
+          experimental_backgroundImage: `linear-gradient(90deg, ${theme.gradienteInicio}, ${theme.gradienteFim})`,
+        },
         pressed && styles.pressionado,
       ]}>
       <ThemedText type="small" style={ativo && { color: theme.onAccent }}>
@@ -41,7 +44,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.four,
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     minHeight: 44,
     justifyContent: 'center',

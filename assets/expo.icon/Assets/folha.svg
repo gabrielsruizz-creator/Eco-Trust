@@ -1,7 +1,14 @@
 <svg width="600" height="600" viewBox="-150 -150 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g transform="rotate(35) translate(0 -10)">
-<path d="M0 100 C95 55 75 -55 0 -100 C-75 -55 -95 55 0 100 Z" fill="white"/>
-<path d="M0 90 L0 135" stroke="white" stroke-width="12" stroke-linecap="round"/>
-<path d="M0 85 L0 -60 M0 35 L34 2 M0 -8 L-30 -38" stroke="#0A7A5E" stroke-width="9" stroke-linecap="round"/>
+<defs>
+<linearGradient id="g" x1="-95" y1="0" x2="95" y2="0" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#7B5CFF"/>
+<stop offset="1" stop-color="#3A5CF5"/>
+</linearGradient>
+</defs>
+<g transform="translate(-4 -34) rotate(-35)">
+<path d="M-95 0 C-45 -40 45 -40 95 0 C45 30 -45 30 -95 0 Z" fill="url(#g)"/>
+</g>
+<g transform="translate(4 34) rotate(-35)">
+<path d="M-95 0 C-45 -40 45 -40 95 0 C45 30 -45 30 -95 0 Z" fill="url(#g)"/>
 </g>
 </svg>

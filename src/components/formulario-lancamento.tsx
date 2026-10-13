@@ -37,6 +37,8 @@ type Props = {
   inicial?: Transacao;
   /** Salva os dados (pode lançar ErroValidacao). Depois de salvar, a tela fecha. */
   aoSalvar: (dados: NovaTransacao) => void;
+  /** Tipo já escolhido ao abrir um novo lançamento (atalhos Receita/Despesa) */
+  tipoInicial?: TipoTransacao;
 };
 
 function opcaoDataInicial(data: string): OpcaoData {
@@ -46,9 +48,9 @@ function opcaoDataInicial(data: string): OpcaoData {
 }
 
 /** Formulário de receita/despesa, usado para criar e para editar lançamentos. */
-export function FormularioLancamento({ titulo, inicial, aoSalvar }: Props) {
+export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 'despesa' }: Props) {
   const theme = useTheme();
-  const [tipo, setTipo] = useState<TipoTransacao>(inicial?.tipo ?? 'despesa');
+  const [tipo, setTipo] = useState<TipoTransacao>(inicial?.tipo ?? tipoInicial);
   const categorias = useCategorias(tipo);
   const [valorTexto, setValorTexto] = useState(
     inicial ? centavosParaTexto(inicial.valorCentavos) : '',

@@ -23,9 +23,11 @@ export type Transacao = {
   categoriaNome: string;
   data: string;
   recorrente: boolean;
+  /** Momento em que foi registrado (ISO), quando disponível */
+  criadoEm?: string;
 };
 
-export type NovaTransacao = Omit<Transacao, 'id' | 'categoriaNome'>;
+export type NovaTransacao = Omit<Transacao, 'id' | 'categoriaNome' | 'criadoEm'>;
 
 export type FiltroTransacoes = {
   mes?: string;
@@ -85,6 +87,9 @@ export type Dashboard = {
   disponivelParaGastarCentavos: number | null;
   categorias: { categoriaId: number; categoria: string; totalCentavos: number; percentual: number }[];
   insights: Insight[];
+  /** Variação em % contra o mês anterior (null quando o mês anterior foi zero) */
+  variacaoReceitas: number | null;
+  variacaoDespesas: number | null;
 };
 
 export type SituacaoDividas = 'nao' | 'controlada' | 'pesando';

@@ -1,68 +1,76 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Cores, espaçamentos e tipografia do EcoTrust (tema escuro padrão e claro opcional).
  */
 
 import { Platform } from 'react-native';
 
 export const Colors = {
-  // Paleta "Verde confiança": verde EcoTrust + azul-marinho. Contrastes conferidos (WCAG AA):
-  // accent x onAccent 5,3:1 (claro) e 9,2:1 (escuro); accentText sobre cartão e accentSoft ≥ 4,6:1.
+  // Paleta "Noite EcoTrust": azul-marinho profundo + degradê roxo → azul (referência de design).
+  // O app abre no escuro; o claro é opcional nas Preferências. Contrastes conferidos (WCAG AA)
+  // em teste automático: texto, textSecondary, accentText e onAccent ≥ 4,5:1 nos dois temas.
   light: {
-    text: '#0B2545',
-    background: '#F6FAF8',
+    text: '#0B1230',
+    background: '#F5F6FB',
     backgroundElement: '#FFFFFF',
-    backgroundSelected: '#E6EFEB',
-    border: '#DDE6E2',
-    textSecondary: '#5B6B73',
+    backgroundSelected: '#E9ECF7',
+    border: '#E1E5F2',
+    textSecondary: '#5A6385',
     /** Preenchimento de botões e elementos ativos */
-    accent: '#0A7A5E',
-    /** Texto/ícone sobre o accent */
+    accent: '#5B3FE0',
+    /** Texto/ícone sobre o accent e sobre o degradê */
     onAccent: '#FFFFFF',
     /** Links e textos de destaque */
-    accentText: '#0A7A5E',
-    /** Verde da marca, só para elementos decorativos (anéis, gráficos, mascote) */
-    brand: '#0F9D7A',
+    accentText: '#5B3FE0',
+    /** Cor da marca para elementos decorativos (anéis, gráficos) */
+    brand: '#6D4AFF',
     positive: '#1A7F4B',
     negative: '#C93636',
-    accentSoft: '#E1F4EE',
+    accentSoft: '#ECE8FF',
     positiveSoft: '#E5F4EC',
     negativeSoft: '#FBEAEA',
+    /** Degradê da marca (botões principais, cartão de saldo, barras de progresso) */
+    gradienteInicio: '#6D4AFF',
+    gradienteFim: '#3A5CF5',
+    /** Brilho atrás de elementos de destaque */
+    brilho: 'rgba(109, 74, 255, 0.22)',
     // Gráficos: cores de situação (sempre com ícone + texto, nunca sozinhas) e linhas finas
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#DDE6E2',
-    chartBaseline: '#B9C7C1',
+    chartGrid: '#E3E6F2',
+    chartBaseline: '#C5CADF',
   },
   dark: {
-    text: '#EAF4F1',
-    background: '#08141C',
-    backgroundElement: '#11222C',
-    backgroundSelected: '#1A3240',
-    border: '#1F3340',
-    textSecondary: '#9FB3BB',
-    accent: '#3DDC97',
-    onAccent: '#04261C',
-    accentText: '#3DDC97',
-    brand: '#3DDC97',
-    positive: '#3DD68C',
-    negative: '#FF6B6B',
-    accentSoft: '#0F2E2A',
-    positiveSoft: '#11281C',
-    negativeSoft: '#2E1616',
+    text: '#F4F6FF',
+    background: '#070B1A',
+    backgroundElement: '#111833',
+    backgroundSelected: '#1B2448',
+    border: '#242E57',
+    textSecondary: '#9AA3C7',
+    accent: '#6D4AFF',
+    onAccent: '#FFFFFF',
+    accentText: '#A99BFF',
+    brand: '#8B6CFF',
+    positive: '#34D399',
+    negative: '#F87171',
+    accentSoft: '#1E1A4A',
+    positiveSoft: '#0F2A24',
+    negativeSoft: '#2E1620',
+    gradienteInicio: '#7454FA',
+    gradienteFim: '#3A5CF5',
+    brilho: 'rgba(123, 92, 255, 0.45)',
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#1F3340',
-    chartBaseline: '#2C4452',
+    chartGrid: '#1F2850',
+    chartBaseline: '#2E3866',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /** Cores de fundo do avatar (todas com bom contraste para texto branco). */
-export const AvatarColors = ['#2a78d6', '#1a7f4b', '#c2410c', '#6d28d9', '#be185d', '#0f766e'] as const;
+export const AvatarColors = ['#5B3FE0', '#2a5fd6', '#1a7f4b', '#c2410c', '#be185d', '#0f766e'] as const;
 
 /**
  * Cores para séries de gráficos (identidade de cada categoria), sempre nesta ordem.

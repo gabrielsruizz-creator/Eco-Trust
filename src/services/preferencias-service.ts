@@ -25,7 +25,7 @@ export type Preferencias = {
 export const HORAS_LEMBRETE = [8, 12, 18, 21];
 
 const PADRAO: Preferencias = {
-  tema: 'sistema',
+  tema: 'escuro',
   diaPagamento: null,
   lembreteDiario: false,
   horaLembrete: 21,

@@ -41,7 +41,7 @@ export default function PerfilInvestidorScreen() {
             </ThemedText>
           )}
         </Cartao>
-        <Botao texto="Conversar com o EcoTrust" onPress={() => router.navigate('/assistente')} />
+        <Botao texto="Conversar com o EcoTrust" onPress={() => router.push('/insights')} />
         <Botao
           texto="Refazer questionário"
           variante="secundario"

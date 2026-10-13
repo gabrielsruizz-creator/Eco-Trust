@@ -1,33 +1,46 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { FolhaCalendario } from '@/components/calendario';
 import { Chip } from '@/components/chip';
-import { Botao, Cartao, Tela } from '@/components/tela';
+import { Icone } from '@/components/icone';
+import { Botao, Cartao, IconeCirculo, Segmentado, Tela } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { SeriesColors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDiasComLancamentos, useHistorico } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
 import { rotuloCategoriaFiltro } from '@/services/historico-service';
 import type { TipoTransacao, Transacao } from '@/types/financas';
-import { formatarData, formatarDataPorExtenso, hoje, mesAtual, nomeDoMes, somarMeses } from '@/utils/datas';
+import {
+  formatarData,
+  formatarDataCurta,
+  formatarDataPorExtenso,
+  hoje,
+  mesAtual,
+  nomeDoMesTitulo,
+  paraDataLocal,
+  somarMeses,
+} from '@/utils/datas';
 import { formatarCentavos } from '@/utils/moeda';
+import { visualCategoria } from '@/utils/visual';
 
 type FiltroTipo = 'todos' | TipoTransacao;
 
-export default function HistoricoScreen() {
+export default function TransacoesScreen() {
   const theme = useTheme();
   const [mes, setMes] = useState(mesAtual());
   const [tipo, setTipo] = useState<FiltroTipo>('todos');
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
   const [dia, setDia] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
   const [calendarioAberto, setCalendarioAberto] = useState(false);
-  const historico = useHistorico(mes, tipo === 'todos' ? undefined : tipo, categoriaId, dia);
+  const historico = useHistorico(mes, tipo === 'todos' ? undefined : tipo, categoriaId, dia, busca);
   const diasComLancamentos = useDiasComLancamentos();
 
   const ehMesAtual = mes >= mesAtual();
-  const filtrando = tipo !== 'todos' || historico.categoriaAplicada !== null || dia !== null;
+  const filtrando = tipo !== 'todos' || historico.categoriaAplicada !== null || dia !== null || busca.trim() !== '';
 
   function trocarMes(novo: string) {
     setMes(novo);
@@ -45,28 +58,57 @@ export default function HistoricoScreen() {
   }
 
   return (
-    <Tela titulo="Histórico">
-      {/* Mês */}
-      <View style={styles.seletorMes}>
-        <BotaoSeta
-          texto="‹"
-          rotulo="Mês anterior"
-          aoTocar={() => trocarMes(somarMeses(mes, -1))}
+    <Tela
+      titulo="Transações"
+      acoes={[
+        { icone: 'categorias', rotulo: 'Categorias e orçamento', aoTocar: () => router.push('/orcamento') },
+        { icone: 'mais', rotulo: 'Novo lançamento', aoTocar: () => router.push('/novo-lancamento') },
+      ]}>
+      {/* Busca */}
+      <View style={[styles.busca, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        <Icone nome="busca" cor={theme.textSecondary} tamanho={18} />
+        <TextInput
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="Buscar transações..."
+          placeholderTextColor={theme.textSecondary}
+          accessibilityLabel="Buscar transações por descrição ou categoria"
+          returnKeyType="search"
+          style={[styles.campoBusca, { color: theme.text }]}
         />
+        {busca !== '' && (
+          <Pressable onPress={() => setBusca('')} accessibilityRole="button" accessibilityLabel="Limpar busca" hitSlop={12}>
+            <Icone nome="fechar" cor={theme.textSecondary} tamanho={16} />
+          </Pressable>
+        )}
+      </View>
+
+      <Segmentado
+        rotulo="Tipo de lançamento"
+        valor={tipo}
+        aoMudar={trocarTipo}
+        opcoes={[
+          { valor: 'todos', texto: 'Todos' },
+          { valor: 'receita', texto: 'Receitas' },
+          { valor: 'despesa', texto: 'Despesas' },
+        ]}
+      />
+
+      {/* Mês (o nome abre o calendário) */}
+      <View style={styles.seletorMes}>
+        <BotaoSeta icone="voltar" rotulo="Mês anterior" aoTocar={() => trocarMes(somarMeses(mes, -1))} />
         <Pressable
           onPress={() => setCalendarioAberto(true)}
           accessibilityRole="button"
-          accessibilityLabel={`${nomeDoMes(mes)}. Abrir calendário para escolher um dia`}
+          accessibilityLabel={`${nomeDoMesTitulo(mes)}. Abrir calendário para escolher um dia`}
           style={({ pressed }) => [styles.botaoMes, pressed && styles.pressionado]}>
-          <ThemedText type="smallBold" style={styles.nomeMes} accessibilityLiveRegion="polite">
-            📅 {nomeDoMes(mes)}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.accentText }}>
-            ▾
+          <Icone nome="calendario" cor={theme.accentText} tamanho={18} />
+          <ThemedText type="smallBold" accessibilityLiveRegion="polite">
+            {nomeDoMesTitulo(mes)}
           </ThemedText>
         </Pressable>
         <BotaoSeta
-          texto="›"
+          icone="avancar"
           rotulo="Próximo mês"
           desativado={ehMesAtual}
           aoTocar={() => trocarMes(somarMeses(mes, 1))}
@@ -84,45 +126,29 @@ export default function HistoricoScreen() {
         acaoExtra={dia ? { texto: 'Mês inteiro', aoTocar: () => setDia(null) } : undefined}
       />
 
-      {/* Dia escolhido no calendário */}
       {dia && (
         <View style={[styles.filtroDia, { backgroundColor: theme.accentSoft }]}>
-          <ThemedText type="small" style={styles.flexTexto}>
-            Mostrando só{' '}
-            <ThemedText type="smallBold">{formatarDataPorExtenso(dia)}</ThemedText>
+          <ThemedText type="small" style={styles.flex}>
+            Mostrando só <ThemedText type="smallBold">{formatarDataPorExtenso(dia)}</ThemedText>
           </ThemedText>
-          <Pressable
-            onPress={() => setDia(null)}
-            accessibilityRole="button"
-            accessibilityLabel="Mostrar o mês inteiro"
-            hitSlop={12}>
+          <Pressable onPress={() => setDia(null)} accessibilityRole="button" accessibilityLabel="Mostrar o mês inteiro" hitSlop={12}>
             <ThemedText type="smallBold" style={{ color: theme.accentText }}>
-              Mês inteiro ✕
+              Mês inteiro
             </ThemedText>
           </Pressable>
         </View>
       )}
-
-      {/* Tipo */}
-      <View style={styles.chips} accessibilityRole="radiogroup">
-        <Chip texto="Todos" ativo={tipo === 'todos'} aoTocar={() => trocarTipo('todos')} />
-        <Chip texto="Receitas" ativo={tipo === 'receita'} aoTocar={() => trocarTipo('receita')} />
-        <Chip texto="Despesas" ativo={tipo === 'despesa'} aoTocar={() => trocarTipo('despesa')} />
-      </View>
 
       {/* Categoria (só as que aparecem no período) */}
       {historico.categorias.length > 1 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.sangria}
           contentContainerStyle={styles.chipsRolagem}
           accessibilityRole="radiogroup"
           accessibilityLabel="Filtrar por categoria">
-          <Chip
-            texto="Todas as categorias"
-            ativo={historico.categoriaAplicada === null}
-            aoTocar={() => setCategoriaId(null)}
-          />
+          <Chip texto="Todas" ativo={historico.categoriaAplicada === null} aoTocar={() => setCategoriaId(null)} />
           {historico.categorias.map((c) => (
             <Chip
               key={c.id}
@@ -146,8 +172,7 @@ export default function HistoricoScreen() {
           />
         </View>
         <ThemedText type="small" themeColor="textSecondary">
-          {historico.totais.quantidade}{' '}
-          {historico.totais.quantidade === 1 ? 'lançamento' : 'lançamentos'}
+          {historico.totais.quantidade} {historico.totais.quantidade === 1 ? 'lançamento' : 'lançamentos'}
           {filtrando ? ' com os filtros escolhidos' : ''}
         </ThemedText>
       </Cartao>
@@ -155,89 +180,84 @@ export default function HistoricoScreen() {
       {/* Lista agrupada por dia */}
       {historico.grupos.length === 0 && (
         <View style={styles.vazio}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {dia
-              ? `Nenhum lançamento em ${formatarData(dia)}${tipo !== 'todos' || historico.categoriaAplicada !== null ? ' com esses filtros' : ''}.`
-              : filtrando
-              ? 'Nenhum lançamento com esses filtros neste mês.'
-              : `Nenhum lançamento em ${nomeDoMes(mes)}.`}
+          <ThemedText type="small" themeColor="textSecondary" style={styles.centro}>
+            {busca.trim()
+              ? `Nada encontrado para "${busca.trim()}".`
+              : dia
+                ? `Nenhum lançamento em ${formatarData(dia)}.`
+                : filtrando
+                  ? 'Nenhum lançamento com esses filtros neste mês.'
+                  : `Nenhum lançamento em ${nomeDoMesTitulo(mes).toLocaleLowerCase('pt-BR')}.`}
           </ThemedText>
           {ehMesAtual && !filtrando && (
-            <Botao texto="+ Novo lançamento" onPress={() => router.push('/novo-lancamento')} />
+            <Botao texto="Novo lançamento" icone="mais" onPress={() => router.push('/novo-lancamento')} />
           )}
         </View>
       )}
 
       {historico.grupos.map((grupo) => (
         <View key={grupo.data} style={styles.grupo}>
-          <View style={styles.cabecalhoDia} accessibilityRole="header">
-            <ThemedText type="smallBold">{grupo.rotulo}</ThemedText>
-            {grupo.destaque && (
-              <ThemedText type="small" themeColor="textSecondary">
-                {grupo.destaque}
-              </ThemedText>
-            )}
-          </View>
+          <ThemedText type="small" themeColor="textSecondary" accessibilityRole="header">
+            {grupo.destaque ? `${grupo.destaque}, ${formatarDataCurta(grupo.data)}` : formatarDataCurta(grupo.data)}
+          </ThemedText>
           <Cartao style={styles.cartaoDia}>
             {grupo.transacoes.map((t, i) => (
-              <ItemTransacao
-                key={t.id}
-                transacao={t}
-                separador={i > 0}
-                aoTocar={() =>
-                  router.push({ pathname: '/lancamento/[id]', params: { id: String(t.id) } })
-                }
-              />
+              <ItemTransacao key={t.id} transacao={t} separador={i > 0} />
             ))}
           </Cartao>
         </View>
       ))}
-
-      {historico.grupos.length > 0 && (
-        <ThemedText type="small" themeColor="textSecondary" style={styles.dica}>
-          Toque em um lançamento para ver os detalhes ou editar.
-        </ThemedText>
-      )}
     </Tela>
   );
 }
 
-function ItemTransacao({
-  transacao: t,
-  separador,
-  aoTocar,
-}: {
-  transacao: Transacao;
-  separador: boolean;
-  aoTocar: () => void;
-}) {
+/** Hora em que o lançamento foi registrado, só quando foi registrado no próprio dia. */
+function horaDoRegistro(t: Transacao) {
+  if (!t.criadoEm) return null;
+  const criado = new Date(t.criadoEm);
+  if (Number.isNaN(criado.getTime()) || paraDataLocal(criado) !== t.data) return null;
+  return criado.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function ItemTransacao({ transacao: t, separador }: { transacao: Transacao; separador: boolean }) {
   const theme = useTheme();
+  const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
   const titulo = t.descricao || t.categoriaNome;
   const receita = t.tipo === 'receita';
+  const visual = visualCategoria(t.categoriaNome, t.categoriaId);
+  const hora = horaDoRegistro(t);
 
   return (
     <Pressable
-      onPress={aoTocar}
+      onPress={() => router.push({ pathname: '/lancamento/[id]', params: { id: String(t.id) } })}
       accessibilityRole="button"
       accessibilityLabel={`${receita ? 'Receita' : 'Despesa'}: ${titulo}, ${formatarCentavos(t.valorCentavos)}, ${t.categoriaNome}, ${formatarData(t.data)}${t.recorrente ? ', recorrente' : ''}`}
       accessibilityHint="Abre os detalhes do lançamento"
       style={({ pressed }) => [
         styles.item,
-        separador && [styles.itemSeparado, { borderTopColor: theme.backgroundSelected }],
+        separador && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
         pressed && styles.pressionado,
       ]}>
+      <IconeCirculo icone={visual.icone} cor={SeriesColors[esquema][visual.cor]} />
       <View style={styles.flex}>
         <ThemedText type="smallBold" numberOfLines={1}>
           {titulo}
         </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
           {t.categoriaNome}
           {t.recorrente ? ' · Recorrente' : ''}
         </ThemedText>
       </View>
-      <ThemedText type="smallBold" style={{ color: receita ? theme.positive : theme.negative }}>
-        {receita ? '+' : '−'} {formatarCentavos(t.valorCentavos)}
-      </ThemedText>
+      <View style={styles.valor}>
+        <ThemedText type="smallBold" style={{ color: receita ? theme.positive : theme.negative }}>
+          {receita ? '+' : '−'} {formatarCentavos(t.valorCentavos)}
+        </ThemedText>
+        {hora && (
+          <ThemedText type="small" themeColor="textSecondary">
+            {hora}
+          </ThemedText>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -256,12 +276,12 @@ function Total({ rotulo, valor, cor }: { rotulo: string; valor: number; cor: str
 }
 
 function BotaoSeta({
-  texto,
+  icone,
   rotulo,
   aoTocar,
   desativado,
 }: {
-  texto: string;
+  icone: 'voltar' | 'avancar';
   rotulo: string;
   aoTocar: () => void;
   desativado?: boolean;
@@ -277,11 +297,11 @@ function BotaoSeta({
       hitSlop={8}
       style={({ pressed }) => [
         styles.seta,
-        { backgroundColor: theme.backgroundElement },
-        (pressed || desativado) && styles.pressionado,
-        desativado && styles.setaDesativada,
+        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+        pressed && styles.pressionado,
+        desativado && styles.desativado,
       ]}>
-      <ThemedText style={styles.textoSeta}>{texto}</ThemedText>
+      <Icone nome={icone} cor={theme.text} tamanho={18} />
     </Pressable>
   );
 }
@@ -290,13 +310,49 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  centro: {
+    textAlign: 'center',
+  },
+  pressionado: {
+    opacity: 0.7,
+  },
+  desativado: {
+    opacity: 0.35,
+  },
+  busca: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    minHeight: 48,
+    borderRadius: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  campoBusca: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: Spacing.two,
+  },
+  seletorMes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
   botaoMes: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.one,
+    gap: Spacing.two,
     minHeight: 44,
+  },
+  seta: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filtroDia: {
     flexDirection: 'row',
@@ -305,42 +361,13 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Spacing.three,
   },
-  flexTexto: {
-    flex: 1,
-  },
-  seletorMes: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  nomeMes: {
-    flex: 1,
-    textAlign: 'center',
-    textTransform: 'capitalize',
-  },
-  seta: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  setaDesativada: {
-    opacity: 0.3,
-  },
-  textoSeta: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: 600,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
+  sangria: {
+    marginHorizontal: -Spacing.three,
+    flexGrow: 0,
   },
   chipsRolagem: {
     gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
   },
   totais: {
     flexDirection: 'row',
@@ -352,16 +379,10 @@ const styles = StyleSheet.create({
   },
   vazio: {
     gap: Spacing.three,
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.four,
   },
   grupo: {
     gap: Spacing.two,
-  },
-  cabecalhoDia: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.one,
   },
   cartaoDia: {
     paddingVertical: Spacing.one,
@@ -370,16 +391,12 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.three,
+    minHeight: 64,
     paddingVertical: Spacing.two,
   },
-  itemSeparado: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  pressionado: {
-    opacity: 0.6,
-  },
-  dica: {
-    textAlign: 'center',
+  valor: {
+    alignItems: 'flex-end',
+    gap: Spacing.half,
   },
 });

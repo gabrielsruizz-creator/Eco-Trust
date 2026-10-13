@@ -58,9 +58,10 @@ export function useHistorico(
   tipo: TipoTransacao | undefined,
   categoriaId: number | null,
   dia: string | null = null,
+  busca = '',
 ) {
   const transacoes = useTransacoes(mes, tipo);
-  return useMemo(() => montarHistorico(transacoes, categoriaId, dia), [transacoes, categoriaId, dia]);
+  return useMemo(() => montarHistorico(transacoes, categoriaId, dia, busca), [transacoes, categoriaId, dia, busca]);
 }
 
 export function useDiasComLancamentos() {

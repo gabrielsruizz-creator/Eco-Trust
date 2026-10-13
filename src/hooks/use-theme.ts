@@ -8,7 +8,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useTheme() {
   const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
+  // Sem preferência do sistema, o EcoTrust usa o tema escuro (padrão do app).
+  const theme = scheme === 'unspecified' ? 'dark' : scheme;
 
   return Colors[theme];
 }

@@ -7,7 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const DURATION = 600;
 /** Mesma cor do splash nativo (app.json), para a troca não piscar. */
-const COR_SPLASH = '#0F9D7A';
+const COR_SPLASH = '#070B1A';
 
 /** Continua o splash nativo (folha do EcoTrust) e some suavemente quando o app está pronto. */
 export function AnimatedSplashOverlay() {

@@ -31,7 +31,7 @@ export type InsightIA = {
   titulo: string;
   texto: string;
   /** Atalho opcional para agir sobre o insight */
-  acao?: { rotulo: string; rota: '/nova-meta' | '/editar-orcamento' | '/novo-lancamento' | '/planejar' };
+  acao?: { rotulo: string; rota: '/nova-meta' | '/editar-orcamento' | '/novo-lancamento' | '/orcamento' };
 };
 
 export type Analise = {
@@ -235,7 +235,7 @@ function analisarOrcamento(e: EntradaAnalise): InsightIA[] {
       tema: 'orcamento',
       titulo: 'Defina um orçamento',
       texto: 'Você ainda não tem orçamento. Definir um limite mensal ajuda o EcoTrust a avisar antes de você gastar demais.',
-      acao: { rotulo: 'Definir orçamento', rota: '/planejar' },
+      acao: { rotulo: 'Definir orçamento', rota: '/orcamento' },
     });
   } else if (categorias.length > 0 && categorias.every((c) => c.situacao === 'dentro') && (!geral || geral.situacao === 'dentro')) {
     insights.push({

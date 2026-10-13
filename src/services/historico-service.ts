@@ -5,6 +5,7 @@
 
 import type { TipoTransacao, Transacao } from '@/types/financas';
 import { hoje, ontem } from '@/utils/datas';
+import { normalizar } from '@/utils/visual';
 
 const MESES_ABREVIADOS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
@@ -42,6 +43,7 @@ export function montarHistorico(
   transacoes: Transacao[],
   categoriaId: number | null = null,
   dia: string | null = null,
+  busca = '',
 ): Historico {
   const porId = new Map<number, OpcaoCategoriaFiltro>();
   for (const t of transacoes) {
@@ -50,8 +52,12 @@ export function montarHistorico(
   const categorias = [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   const categoriaAplicada = categoriaId !== null && porId.has(categoriaId) ? categoriaId : null;
 
+  const termo = normalizar(busca);
   const filtradas = transacoes.filter(
-    (t) => (categoriaAplicada === null || t.categoriaId === categoriaAplicada) && (dia === null || t.data === dia),
+    (t) =>
+      (categoriaAplicada === null || t.categoriaId === categoriaAplicada) &&
+      (dia === null || t.data === dia) &&
+      (termo === '' || normalizar(`${t.descricao} ${t.categoriaNome}`).includes(termo)),
   );
 
   const dataHoje = hoje();

@@ -10,11 +10,12 @@ type LinhaTransacao = {
   categoria_nome: string;
   data: string;
   recorrente: number;
+  criado_em: string;
 };
 
 const SELECT_TRANSACAO = `
   SELECT t.id, t.tipo, t.valor_centavos, t.descricao, t.categoria_id, c.nome AS categoria_nome,
-         t.data, t.recorrente
+         t.data, t.recorrente, t.criado_em
   FROM transacoes t
   JOIN categorias c ON c.id = t.categoria_id`;
 
@@ -28,6 +29,7 @@ function paraTransacao(l: LinhaTransacao): Transacao {
     categoriaNome: l.categoria_nome,
     data: l.data,
     recorrente: l.recorrente === 1,
+    criadoEm: l.criado_em,
   };
 }
 
