@@ -29,7 +29,7 @@ import {
 import { obterImpostosFixos } from '@/services/impostos-renda-service';
 import { obterDeducoesIR } from '@/services/ir-service';
 import { obterSimulacaoReforma } from '@/services/reforma-service';
-import { obterNotaDoLancamento } from '@/services/nota-fiscal-service';
+import { obterNotaDoLancamento, obterResumoCpfNaNota } from '@/services/nota-fiscal-service';
 import { montarHistorico } from '@/services/historico-service';
 import { obterMeta, obterMetas } from '@/services/metas-service';
 import { obterOrcamentos } from '@/services/orcamento-service';
@@ -103,6 +103,12 @@ export function useDeducoesIR(ano: number) {
 export function useSimulacaoReforma(mes: string) {
   const versao = useVersaoDados();
   return useMemo(() => obterSimulacaoReforma(mes), [versao, mes]);
+}
+
+/** Estado das notas lidas no ano, programa de CPF na nota e quantas saíram sem CPF. */
+export function useCpfNaNota(ano: number) {
+  const versao = useVersaoDados();
+  return useMemo(() => obterResumoCpfNaNota(ano), [versao, ano]);
 }
 
 export function useImpostometro(mes: string) {

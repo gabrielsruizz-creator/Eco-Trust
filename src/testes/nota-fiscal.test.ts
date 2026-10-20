@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import { consultarNota, enderecoSeguro, lerChave, lerItensDaPagina, lerPaginaNota, lerQrCode } from '@/services/nota-fiscal-service';
+import {
+  consultarNota,
+  enderecoSeguro,
+  lerChave,
+  lerItensDaPagina,
+  lerPaginaNota,
+  lerQrCode,
+  resumirCpfNaNota,
+} from '@/services/nota-fiscal-service';
 
 jest.mock('@/repositories/notas-repository', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').notasRepository);
 
@@ -71,6 +79,7 @@ describe('página da SEFAZ', () => {
       tributosCentavos: 28_710,
       data: '2026-10-05',
       emitente: 'SUPERMERCADO BOM PREÇO LTDA',
+      cpfNaNota: null,
     });
   });
 
@@ -91,5 +100,25 @@ describe('página da SEFAZ', () => {
     expect(nota.valorCentavos).toBe(123_456);
     expect(nota.tributosCentavos).toBeNull();
     expect(nota.itens).toHaveLength(2);
+  });
+});
+
+describe('CPF na nota', () => {
+  it('detecta consumidor identificado ou não', () => {
+    expect(lerPaginaNota('<div>CONSUMIDOR NÃO IDENTIFICADO</div>').cpfNaNota).toBe(false);
+    expect(lerPaginaNota('<li><strong>CPF:</strong> 123.***.***-00</li>').cpfNaNota).toBe(true);
+    expect(lerPaginaNota('<div>CNPJ: 12.345.678/0001-90</div>').cpfNaNota).toBeNull();
+  });
+
+  it('resume o estado das notas e o programa', () => {
+    const outraUf = chaveValida('4126101234567800019065001000012345112345678'); // PR
+    const r = resumirCpfNaNota([
+      { chave: CHAVE, cpfNaNota: false },
+      { chave: CHAVE, cpfNaNota: true },
+      { chave: outraUf, cpfNaNota: null },
+    ])!;
+    expect(r).toMatchObject({ uf: 'SP', total: 3, comCpf: 1, semCpf: 1 });
+    expect(r.programa?.nome).toBe('Nota Fiscal Paulista');
+    expect(resumirCpfNaNota([])).toBeNull();
   });
 });

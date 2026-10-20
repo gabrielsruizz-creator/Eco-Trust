@@ -214,4 +214,6 @@ export type NotaSalva = {
   url: string | null;
   emitente: string | null;
   itens: ItemNota[];
+  /** A nota saiu com o CPF do consumidor? null = a página não disse */
+  cpfNaNota?: boolean | null;
 };

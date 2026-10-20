@@ -9,7 +9,8 @@
  * Segurança: o conteúdo do QR Code vem de fora. Só buscamos e abrimos endereços de governo (.gov.br).
  */
 
-import { buscarNotaDaTransacao, gravarNotaDaTransacao } from '@/repositories/notas-repository';
+import { programaDoEstado, type ProgramaEstadual } from '@/data/programas-estaduais';
+import { buscarNotaDaTransacao, gravarNotaDaTransacao, listarNotasDoPeriodo } from '@/repositories/notas-repository';
 import type { ItemNota, NotaSalva } from '@/types/financas';
 import { dataValida, hoje } from '@/utils/datas';
 import { lerValorEmCentavos } from '@/utils/moeda';
@@ -51,6 +52,8 @@ export type DadosNota = {
   data: string | null;
   emitente: string | null;
   itens: ItemNota[];
+  /** A nota saiu com o CPF do consumidor? null = não deu para saber */
+  cpfNaNota: boolean | null;
 };
 
 const MAX_ITENS = 300;
@@ -150,7 +153,9 @@ function paraTexto(html: string) {
 const VALOR = String.raw`(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})`;
 
 /** Extrai valor, tributos, data e loja da página de consulta da SEFAZ (vários layouts estaduais). */
-export function lerPaginaNota(html: string): Pick<DadosNota, 'valorCentavos' | 'tributosCentavos' | 'data' | 'emitente'> {
+export function lerPaginaNota(
+  html: string,
+): Pick<DadosNota, 'valorCentavos' | 'tributosCentavos' | 'data' | 'emitente' | 'cpfNaNota'> {
   const texto = paraTexto(html);
   const achar = (padroes: RegExp[]) => {
     for (const p of padroes) {
@@ -183,11 +188,17 @@ export function lerPaginaNota(html: string): Pick<DadosNota, 'valorCentavos' | '
   const emitenteHtml = /class="[^"]*txtTopo[^"]*"[^>]*>([^<]{3,80})</i.exec(html)?.[1];
   const emitente = emitenteHtml ? paraTexto(emitenteHtml).trim() || null : null;
 
+  // Consumidor: "Consumidor não identificado" ou "CPF: 123.***.***-00" (o CNPJ é da loja).
+  let cpfNaNota: boolean | null = null;
+  if (/Consumidor n[ãa]o identificado/i.test(texto)) cpfNaNota = false;
+  else if (/\bCPF\b[^0-9*]{0,25}[\d*]{3}[.*]/i.test(texto)) cpfNaNota = true;
+
   return {
     valorCentavos: valor ? lerValorEmCentavos(valor) : null,
     tributosCentavos: tributos ? lerValorEmCentavos(tributos, true) : null,
     data,
     emitente,
+    cpfNaNota,
   };
 }
 
@@ -258,6 +269,7 @@ export async function consultarNota(qr: QrNota): Promise<DadosNota> {
     data: null,
     emitente: null,
     itens: [],
+    cpfNaNota: null,
   };
   if (!qr.url) return base;
   const html = await buscarPagina(qr.url);
@@ -276,6 +288,7 @@ export async function consultarNota(qr: QrNota): Promise<DadosNota> {
     data: pagina.data,
     emitente: pagina.emitente,
     itens: lerItensDaPagina(html),
+    cpfNaNota: pagina.cpfNaNota,
   };
 }
 
@@ -308,9 +321,41 @@ export function anexarNotaAoLancamento(transacaoId: number, nota: DadosNota) {
     url: nota.url,
     emitente: nota.emitente,
     itens: nota.itens,
+    cpfNaNota: nota.cpfNaNota,
   });
 }
 
 export function obterNotaDoLancamento(transacaoId: number): NotaSalva | null {
   return buscarNotaDaTransacao(transacaoId);
+}
+
+export type ResumoCpfNaNota = {
+  /** Estado da maioria das notas lidas */
+  uf: string;
+  programa: ProgramaEstadual | null;
+  total: number;
+  comCpf: number;
+  semCpf: number;
+};
+
+/** Notas lidas no ano: de que estado são e quantas saíram sem o CPF. null se nenhuma nota foi lida. */
+export function resumirCpfNaNota(notas: { chave: string; cpfNaNota: boolean | null }[]): ResumoCpfNaNota | null {
+  const porUf = new Map<string, number>();
+  for (const n of notas) {
+    const uf = lerChave(n.chave)?.uf;
+    if (uf) porUf.set(uf, (porUf.get(uf) ?? 0) + 1);
+  }
+  const uf = [...porUf.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!uf) return null;
+  return {
+    uf,
+    programa: programaDoEstado(uf),
+    total: notas.length,
+    comCpf: notas.filter((n) => n.cpfNaNota === true).length,
+    semCpf: notas.filter((n) => n.cpfNaNota === false).length,
+  };
+}
+
+export function obterResumoCpfNaNota(ano: number): ResumoCpfNaNota | null {
+  return resumirCpfNaNota(listarNotasDoPeriodo(`${ano}-01-01`, `${ano}-12-31`));
 }

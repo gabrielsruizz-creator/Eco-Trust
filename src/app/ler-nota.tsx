@@ -100,7 +100,10 @@ export default function LerNotaScreen() {
       params: {
         tipo: 'despesa',
         chave: nota.chave.chave,
-        resumo: `NFC-e nº ${nota.chave.numero} · ${nota.chave.uf}${nota.itens.length ? ` · ${nota.itens.length} ${nota.itens.length === 1 ? 'item' : 'itens'}` : ''}`,
+        resumo:
+          `NFC-e nº ${nota.chave.numero} · ${nota.chave.uf}` +
+          (nota.itens.length ? ` · ${nota.itens.length} ${nota.itens.length === 1 ? 'item' : 'itens'}` : '') +
+          (nota.cpfNaNota === false ? ' · sem o seu CPF' : ''),
         ...(nota.url && { url: nota.url }),
         ...(nota.valorCentavos && { valor: String(nota.valorCentavos) }),
         ...(nota.tributosCentavos !== null && { tributos: String(nota.tributosCentavos) }),

@@ -11,11 +11,17 @@ type LinhaItem = {
 };
 
 export function buscarNotaDaTransacao(transacaoId: number): NotaSalva | null {
-  const nota = getBanco().getFirstSync<{ chave: string; url: string | null; emitente: string | null }>(
-    'SELECT chave, url, emitente FROM notas_fiscais WHERE transacao_id = ?',
+  const linha = getBanco().getFirstSync<{ chave: string; url: string | null; emitente: string | null; cpf_na_nota: number | null }>(
+    'SELECT chave, url, emitente, cpf_na_nota FROM notas_fiscais WHERE transacao_id = ?',
     transacaoId,
   );
-  if (!nota) return null;
+  if (!linha) return null;
+  const nota = {
+    chave: linha.chave,
+    url: linha.url,
+    emitente: linha.emitente,
+    cpfNaNota: linha.cpf_na_nota === null ? null : linha.cpf_na_nota === 1,
+  };
   const itens = getBanco()
     .getAllSync<LinhaItem>(
       `SELECT descricao, codigo, quantidade, unidade, valor_unitario_centavos, valor_total_centavos
@@ -39,13 +45,15 @@ export function gravarNotaDaTransacao(transacaoId: number, nota: NotaSalva) {
   db.withTransactionSync(() => {
     db.runSync('DELETE FROM itens_nota WHERE transacao_id = ?', transacaoId);
     db.runSync(
-      `INSERT INTO notas_fiscais (transacao_id, chave, url, emitente, importada_em) VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO notas_fiscais (transacao_id, chave, url, emitente, cpf_na_nota, importada_em) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT (transacao_id) DO UPDATE SET
-         chave = excluded.chave, url = excluded.url, emitente = excluded.emitente, importada_em = excluded.importada_em`,
+         chave = excluded.chave, url = excluded.url, emitente = excluded.emitente,
+         cpf_na_nota = excluded.cpf_na_nota, importada_em = excluded.importada_em`,
       transacaoId,
       nota.chave,
       nota.url,
       nota.emitente,
+      nota.cpfNaNota === undefined || nota.cpfNaNota === null ? null : nota.cpfNaNota ? 1 : 0,
       new Date().toISOString(),
     );
     nota.itens.forEach((item, ordem) => {
@@ -84,4 +92,16 @@ export function listarItensDoMes(mes: string): Map<number, { descricao: string; 
     porLancamento.set(l.transacao_id, itens);
   }
   return porLancamento;
+}
+
+/** Estado (código IBGE no começo da chave) e CPF das notas lidas num período. */
+export function listarNotasDoPeriodo(inicio: string, fim: string): { chave: string; cpfNaNota: boolean | null }[] {
+  return getBanco()
+    .getAllSync<{ chave: string; cpf_na_nota: number | null }>(
+      `SELECT n.chave, n.cpf_na_nota FROM notas_fiscais n JOIN transacoes t ON t.id = n.transacao_id
+       WHERE t.data BETWEEN ? AND ?`,
+      inicio,
+      fim,
+    )
+    .map((l) => ({ chave: l.chave, cpfNaNota: l.cpf_na_nota === null ? null : l.cpf_na_nota === 1 }));
 }

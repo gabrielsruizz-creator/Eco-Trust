@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -9,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
 import { TRIBUTOS } from '@/data/carga-tributaria';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useImpostometro } from '@/hooks/use-dados';
+import { useCpfNaNota, useImpostometro } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
 import { formatarDataCurta, mesAtual, nomeDoMes, nomeDoMesTitulo, somarMeses } from '@/utils/datas';
 import { formatarCentavos } from '@/utils/moeda';
@@ -33,6 +34,7 @@ export default function ImpostosScreen() {
   const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
   const [mes, setMes] = useState(mesAtual());
   const imp = useImpostometro(mes);
+  const cpf = useCpfNaNota(Number(mes.slice(0, 4)));
   const nomeMes = nomeDoMes(mes).split(' ')[0];
   const ehMesAtual = mes >= mesAtual();
   const corTributo = (id: string) => SeriesColors[esquema][TRIBUTOS.findIndex((t) => t.id === id) % 8];
@@ -356,6 +358,34 @@ export default function ImpostosScreen() {
           aoTocar={() => router.push('/reforma-tributaria')}
         />
       </Cartao>
+
+      {/* CPF na nota */}
+      {cpf && (
+        <Cartao>
+          <ThemedText type="smallBold">CPF na nota · {cpf.uf}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {cpf.programa
+              ? `Com o CPF na nota, o ${cpf.programa.nome} ${cpf.programa.beneficio}.`
+              : 'Veja no site da Secretaria da Fazenda do seu estado se há programa que devolve parte do ICMS ou sorteia prêmios para quem pede CPF na nota.'}
+          </ThemedText>
+          {cpf.semCpf > 0 && (
+            <ThemedText type="small">
+              Das {cpf.total} notas que você leu em {mes.slice(0, 4)},{' '}
+              <ThemedText type="smallBold">
+                {cpf.semCpf} {cpf.semCpf === 1 ? 'saiu' : 'saíram'} sem o seu CPF
+              </ThemedText>
+              . Peça o CPF no caixa nas próximas compras.
+            </ThemedText>
+          )}
+          {cpf.programa?.site && (
+            <Pressable onPress={() => openBrowserAsync(cpf.programa!.site!)} accessibilityRole="link" hitSlop={8}>
+              <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+                Abrir o site do {cpf.programa.nome}
+              </ThemedText>
+            </Pressable>
+          )}
+        </Cartao>
+      )}
 
       {/* Como calculamos */}
       <Cartao>
