@@ -15,6 +15,7 @@ import { assinarMudancas, lerVersaoDados } from '@/data/database';
 import { obterAcademy, obterAula, obterCurso, obterCursosDaCategoria } from '@/services/academy-service';
 import { obterAnalise } from '@/services/analise-service';
 import { obterAssinatura } from '@/services/assinatura-service';
+import { obterUltimoBackup } from '@/services/backup-service';
 import { obterCategorias } from '@/services/categorias-service';
 import { obterDashboard } from '@/services/dashboard-service';
 import { obterAnaliseSalva, obterEvolucao } from '@/services/evolucao-service';
@@ -82,6 +83,12 @@ export function useImpostosFixos() {
 export function useNotaDoLancamento(id: number) {
   const versao = useVersaoDados();
   return useMemo(() => (Number.isInteger(id) ? obterNotaDoLancamento(id) : null), [versao, id]);
+}
+
+/** Momento do último backup exportado neste aparelho (null = nunca). */
+export function useUltimoBackup() {
+  const versao = useVersaoDados();
+  return useMemo(() => obterUltimoBackup(), [versao]);
 }
 
 export function useImpostometro(mes: string) {
