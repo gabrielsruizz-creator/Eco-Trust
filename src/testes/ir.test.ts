@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { aliquotaMarginalIR, calcularINSS } from '@/data/tributos-renda';
-import { calcularDeducoes, palpiteDedutivel, type DespesaDedutivel } from '@/services/ir-service';
+import { calcularDeducoes, palpiteDedutivel, type DespesaDedutivel, type TipoDeducao } from '@/services/ir-service';
 import type { ImpostosFixos } from '@/types/financas';
 
 const fixos = (bruto: number, dependentes = 0): ImpostosFixos => ({
@@ -24,7 +24,7 @@ function despesa(tipo: 'saude' | 'educacao', valorCentavos: number, dedutivel = 
 }
 
 describe('palpite do que entra no IR', () => {
-  it.each([
+  it.each<[TipoDeducao, string, boolean]>([
     ['saude', 'Consulta dentista', true],
     ['saude', 'Plano de saúde Unimed', true],
     ['saude', 'Drogaria São Paulo', false],
@@ -32,7 +32,7 @@ describe('palpite do que entra no IR', () => {
     ['educacao', 'Mensalidade faculdade', true],
     ['educacao', 'Curso de inglês', false],
     ['educacao', 'Material escolar', false],
-  ] as const)('%s: %s → %s', (tipo, descricao, esperado) => {
+  ])('%s: %s → %s', (tipo, descricao, esperado) => {
     expect(palpiteDedutivel(tipo, descricao)).toBe(esperado);
   });
 });
