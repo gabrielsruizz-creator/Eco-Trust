@@ -11,6 +11,7 @@ import {
 } from '@/services/perfil-financeiro-service';
 import { DESCRICAO_PERFIL, obterPerfil, PERGUNTAS } from '@/services/perfil-investidor-service';
 import { obterAnalise } from '@/services/analise-service';
+import { obterImpostometro } from '@/services/impostometro-service';
 import { descreverMeta, obterMetas } from '@/services/metas-service';
 import { obterOrcamentos } from '@/services/orcamento-service';
 import { obterResumoDoMes } from '@/services/resumo-service';
@@ -75,6 +76,23 @@ export function montarContextoIA() {
 
   if (!temMovimentacao) {
     linhas.push(`Nenhuma receita ou despesa registrada nos últimos ${MESES_HISTORICO} meses.`);
+  }
+
+  const impostos = obterImpostometro(mesAtual());
+  if (impostos.despesas > 0) {
+    linhas.push('');
+    linhas.push(
+      `Impostômetro do mês atual (impostos sobre consumo embutidos nas despesas): ${formatarCentavos(impostos.impostosCentavos)}, ${impostos.percentualDosGastos}% dos gastos` +
+        (impostos.diasTrabalhados !== null ? `, equivalente a ${impostos.diasTrabalhados} dias de trabalho` : '') +
+        `. ${impostos.despesasComNota} de ${impostos.despesas} despesas com valor da nota fiscal; o resto é estimado.`,
+    );
+    linhas.push(
+      `- Por imposto: ${impostos.porTributo.map((t) => `${t.tributo.sigla} ${formatarCentavos(t.centavos)}`).join('; ')}`,
+    );
+    linhas.push(
+      `- Por categoria: ${impostos.porCategoria.map((c) => `${c.categoria} ${formatarCentavos(c.impostosCentavos)} (${c.carga}%)`).join('; ')}`,
+    );
+    linhas.push(`- Acumulado no ano: ${formatarCentavos(impostos.acumuladoAnoCentavos)}`);
   }
 
   const orcamentos = obterOrcamentos(mesAtual());

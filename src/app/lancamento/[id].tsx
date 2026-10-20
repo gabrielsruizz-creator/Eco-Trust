@@ -6,7 +6,7 @@ import { Botao, Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTransacao } from '@/hooks/use-dados';
+import { useImpostosDoLancamento, useTransacao } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
 import { excluirTransacao } from '@/services/transacoes-service';
 import { formatarDataPorExtenso } from '@/utils/datas';
@@ -16,6 +16,7 @@ export default function DetalheLancamentoScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const transacao = useTransacao(Number(id));
+  const impostos = useImpostosDoLancamento(Number(id));
 
   function confirmarExclusao() {
     if (!transacao) return;
@@ -92,6 +93,26 @@ export default function DetalheLancamentoScreen() {
                   />
                 )}
               </Cartao>
+
+              {impostos && (
+                <Cartao>
+                  <View
+                    style={styles.linha}
+                    accessible
+                    accessibilityLabel={`Impostos nesta despesa: ${formatarCentavos(impostos.totalCentavos)}, ${impostos.percentual}% do valor, ${impostos.origem === 'nota' ? 'valor da nota fiscal' : 'estimativa'}`}>
+                    <ThemedText type="smallBold">Impostos nesta despesa</ThemedText>
+                    <ThemedText type="smallBold">{formatarCentavos(impostos.totalCentavos)}</ThemedText>
+                  </View>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {impostos.origem === 'nota'
+                      ? `Valor informado na nota fiscal: ${impostos.percentual.toLocaleString('pt-BR')}% do que você pagou.`
+                      : `Estimativa de ${impostos.percentual.toLocaleString('pt-BR')}% para ${impostos.perfil.nome.toLocaleLowerCase('pt-BR')}. Para o valor exato, toque em Editar e informe os tributos da nota fiscal.`}
+                  </ThemedText>
+                  {impostos.porTributo.map(({ tributo, centavos }) => (
+                    <Linha key={tributo.id} rotulo={tributo.sigla} valor={formatarCentavos(centavos)} />
+                  ))}
+                </Cartao>
+              )}
 
               {transacao.recorrente && (
                 <View style={[styles.aviso, { backgroundColor: theme.accentSoft }]}>

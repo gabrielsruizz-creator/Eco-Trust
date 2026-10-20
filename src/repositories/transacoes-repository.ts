@@ -10,12 +10,13 @@ type LinhaTransacao = {
   categoria_nome: string;
   data: string;
   recorrente: number;
+  tributos_centavos: number | null;
   criado_em: string;
 };
 
 const SELECT_TRANSACAO = `
   SELECT t.id, t.tipo, t.valor_centavos, t.descricao, t.categoria_id, c.nome AS categoria_nome,
-         t.data, t.recorrente, t.criado_em
+         t.data, t.recorrente, t.tributos_centavos, t.criado_em
   FROM transacoes t
   JOIN categorias c ON c.id = t.categoria_id`;
 
@@ -29,6 +30,7 @@ function paraTransacao(l: LinhaTransacao): Transacao {
     categoriaNome: l.categoria_nome,
     data: l.data,
     recorrente: l.recorrente === 1,
+    tributosCentavos: l.tributos_centavos,
     criadoEm: l.criado_em,
   };
 }
@@ -96,14 +98,15 @@ export function listarDiasComLancamentos(): string[] {
 
 export function criarTransacao(nova: NovaTransacao): number {
   const resultado = getBanco().runSync(
-    `INSERT INTO transacoes (tipo, valor_centavos, descricao, categoria_id, data, recorrente, criado_em)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO transacoes (tipo, valor_centavos, descricao, categoria_id, data, recorrente, tributos_centavos, criado_em)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     nova.tipo,
     nova.valorCentavos,
     nova.descricao,
     nova.categoriaId,
     nova.data,
     nova.recorrente ? 1 : 0,
+    nova.tributosCentavos,
     new Date().toISOString(),
   );
   notificarMudanca();
@@ -114,7 +117,7 @@ export function criarTransacao(nova: NovaTransacao): number {
 export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
   const resultado = getBanco().runSync(
     `UPDATE transacoes
-     SET tipo = ?, valor_centavos = ?, descricao = ?, categoria_id = ?, data = ?, recorrente = ?
+     SET tipo = ?, valor_centavos = ?, descricao = ?, categoria_id = ?, data = ?, recorrente = ?, tributos_centavos = ?
      WHERE id = ?`,
     dados.tipo,
     dados.valorCentavos,
@@ -122,6 +125,7 @@ export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
     dados.categoriaId,
     dados.data,
     dados.recorrente ? 1 : 0,
+    dados.tributosCentavos,
     id,
   );
   notificarMudanca();

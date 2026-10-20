@@ -51,12 +51,21 @@ function validarTransacao(dados: NovaTransacao): NovaTransacao {
   if (!categoria || categoria.tipo !== dados.tipo) {
     throw new ErroValidacao('Escolha uma categoria válida.');
   }
+  const tributos = dados.tipo === 'despesa' ? dados.tributosCentavos : null;
+  if (tributos !== null && (!Number.isInteger(tributos) || tributos < 0)) {
+    throw new ErroValidacao('Valor dos tributos inválido.');
+  }
+  if (tributos !== null && tributos >= dados.valorCentavos) {
+    throw new ErroValidacao('Os tributos da nota precisam ser menores que o valor da compra.');
+  }
 
   return {
     ...dados,
     descricao: dados.descricao.trim().slice(0, MAX_DESCRICAO),
     // Por enquanto só despesas podem ser recorrentes (ex.: aluguel, assinaturas).
     recorrente: dados.tipo === 'despesa' && dados.recorrente,
+    // Tributos da nota fiscal só fazem sentido em despesas.
+    tributosCentavos: tributos,
   };
 }
 

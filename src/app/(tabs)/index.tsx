@@ -9,7 +9,7 @@ import { SeloNivel } from '@/components/selo-nivel';
 import { Cartao, IconeCirculo, Tela, useDegrade } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
-import { useDadosPessoais, useDashboard, useJornada, usePerfilFinanceiro } from '@/hooks/use-dados';
+import { useDadosPessoais, useDashboard, useImpostometro, useJornada, usePerfilFinanceiro } from '@/hooks/use-dados';
 import { useConta } from '@/hooks/use-sessao';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -26,6 +26,7 @@ export default function InicioScreen() {
   const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
   const mes = mesAtual();
   const dashboard = useDashboard(mes);
+  const impostos = useImpostometro(mes);
   const perfil = usePerfilFinanceiro();
   const conta = useConta();
   const pessoal = useDadosPessoais();
@@ -89,6 +90,41 @@ export default function InicioScreen() {
         <AcaoRapida icone="categorias" texto="Orçamento" destino="/orcamento" />
         <AcaoRapida icone="ia" texto="Insights" destino="/insights" />
       </View>
+
+      {/* Impostômetro pessoal */}
+      <Pressable
+        onPress={() => router.push('/impostometro')}
+        accessibilityRole="button"
+        accessibilityLabel={`Impostômetro: ${formatarCentavos(impostos.impostosCentavos)} em impostos neste mês${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% dos seus gastos` : ''}. Ver detalhes.`}
+        style={({ pressed }) => pressed && styles.pressionado}>
+        <Cartao>
+          <View style={styles.linha}>
+            <IconeCirculo icone="impostos" cor={theme.brand} tamanho={36} />
+            <View style={styles.flex}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Impostômetro de {nomeDoMes(mes).split(' ')[0]}
+              </ThemedText>
+              <ThemedText style={styles.valorResumo}>{formatarCentavos(impostos.impostosCentavos)}</ThemedText>
+            </View>
+            <Icone nome="avancar" cor={theme.textSecondary} tamanho={16} />
+          </View>
+          {impostos.percentualDosGastos !== null ? (
+            <>
+              <BarraProgresso percentual={impostos.percentualDosGastos} altura={6} />
+              <ThemedText type="small" themeColor="textSecondary">
+                {impostos.percentualDosGastos.toLocaleString('pt-BR')}% do que você gastou foi imposto
+                {impostos.diasTrabalhados !== null
+                  ? ` · ${impostos.diasTrabalhados.toLocaleString('pt-BR')} ${impostos.diasTrabalhados === 1 ? 'dia' : 'dias'} de trabalho`
+                  : ''}
+              </ThemedText>
+            </>
+          ) : (
+            <ThemedText type="small" themeColor="textSecondary">
+              Registre suas despesas para ver quanto delas vai para o governo em impostos.
+            </ThemedText>
+          )}
+        </Cartao>
+      </Pressable>
 
       {/* Progresso na jornada */}
       <Pressable

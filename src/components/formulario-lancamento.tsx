@@ -21,12 +21,14 @@ import { Botao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { cargaTotal, perfilTributario } from '@/data/carga-tributaria';
 import { useCategorias } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
+import { perfilTributarioDaCategoria } from '@/services/categorias-service';
 import { ErroValidacao } from '@/services/erros';
 import type { NovaTransacao, TipoTransacao, Transacao } from '@/types/financas';
 import { hoje, ontem } from '@/utils/datas';
-import { centavosParaTexto, lerValorEmCentavos } from '@/utils/moeda';
+import { centavosParaTexto, formatarCentavos, lerValorEmCentavos } from '@/utils/moeda';
 import { vibrarErro, vibrarSucesso } from '@/utils/vibracao';
 
 type OpcaoData = 'hoje' | 'ontem' | 'outra';
@@ -64,13 +66,37 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
     inicial && opcaoDataInicial(inicial.data) === 'outra' ? inicial.data : null,
   );
   const [recorrente, setRecorrente] = useState(inicial?.recorrente ?? false);
+  const [tributosTexto, setTributosTexto] = useState(
+    inicial?.tributosCentavos != null ? centavosParaTexto(inicial.tributosCentavos) : '',
+  );
   const [criandoCategoria, setCriandoCategoria] = useState(false);
 
   const valorCentavos = lerValorEmCentavos(valorTexto);
   const categoria = categorias.find((c) => c.id === categoriaId) ?? null;
   const data = opcaoData === 'hoje' ? hoje() : opcaoData === 'ontem' ? ontem() : outraData;
   const dataNoFuturo = data !== null && data > hoje();
-  const podeSalvar = valorCentavos !== null && categoria !== null && data !== null && !dataNoFuturo;
+
+  // Impostos: o valor da nota fiscal (opcional) ou a estimativa pelo tipo de consumo da categoria.
+  const informouTributos = tipo === 'despesa' && tributosTexto.trim() !== '';
+  const tributosCentavos = informouTributos ? lerValorEmCentavos(tributosTexto, true) : null;
+  let avisoTributos: string | null = null;
+  if (informouTributos && tributosCentavos === null) avisoTributos = 'Valor dos tributos inválido.';
+  else if (tributosCentavos !== null && valorCentavos !== null && tributosCentavos >= valorCentavos) {
+    avisoTributos = 'Os tributos precisam ser menores que o valor da compra.';
+  }
+  const perfil = categoria ? perfilTributario(perfilTributarioDaCategoria(categoria)) : null;
+  const cargaEstimada = perfil ? cargaTotal(perfil) : null;
+  let dicaTributos = 'Procure "Valor aprox. dos tributos" no fim do cupom fiscal. ';
+  if (informouTributos) dicaTributos = 'O seu Impostômetro vai usar o valor da nota.';
+  else if (!perfil || cargaEstimada === null) dicaTributos += 'Sem ele, o EcoTrust estima pelo tipo da categoria.';
+  else if (cargaEstimada === 0) dicaTributos += 'Esta categoria está marcada como sem imposto sobre consumo.';
+  else {
+    const estimativa = valorCentavos !== null ? `: ${formatarCentavos(Math.round((valorCentavos * cargaEstimada) / 100))}` : '';
+    dicaTributos += `Sem ele, estimamos cerca de ${cargaEstimada}% (${perfil.nome.toLocaleLowerCase('pt-BR')})${estimativa}.`;
+  }
+
+  const podeSalvar =
+    valorCentavos !== null && categoria !== null && data !== null && !dataNoFuturo && avisoTributos === null;
 
   let avisoData: string | null = null;
   if (dataNoFuturo) avisoData = 'A data não pode ser no futuro.';
@@ -91,6 +117,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
         categoriaId: categoria.id,
         data,
         recorrente: tipo === 'despesa' && recorrente,
+        tributosCentavos: tipo === 'despesa' ? tributosCentavos : null,
       });
       vibrarSucesso();
       router.back();
@@ -213,6 +240,29 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
                 </ThemedText>
               )}
             </Secao>
+
+            {tipo === 'despesa' && (
+              <Secao titulo="Impostos da nota fiscal (opcional)">
+                <TextInput
+                  style={estiloCampo}
+                  value={tributosTexto}
+                  onChangeText={setTributosTexto}
+                  placeholder="Ex.: 18,35"
+                  placeholderTextColor={theme.textSecondary}
+                  keyboardType="decimal-pad"
+                  accessibilityLabel="Valor aproximado dos tributos na nota fiscal, em reais (opcional)"
+                  returnKeyType="done"
+                />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {dicaTributos}
+                </ThemedText>
+                {avisoTributos && (
+                  <ThemedText type="small" style={{ color: theme.negative }} accessibilityLiveRegion="polite">
+                    {avisoTributos}
+                  </ThemedText>
+                )}
+              </Secao>
+            )}
 
             {tipo === 'despesa' && (
               <View style={[styles.recorrente, { backgroundColor: theme.backgroundElement }]}>

@@ -394,6 +394,57 @@ function v11DataNascimento(db: SQLiteDatabase) {
   db.execSync('ALTER TABLE perfil_pessoal ADD COLUMN data_nascimento TEXT');
 }
 
+/**
+ * Ordem e tipo de consumo das categorias padrão de despesa depois do Impostômetro
+ * ("Outros" fica sempre por último). Fixo aqui, e não importado, para a migração nunca mudar.
+ */
+const CATEGORIAS_V12: [nome: string, perfilTributario: string][] = [
+  ['Supermercado', 'supermercado'],
+  ['Alimentação', 'alimentacao'],
+  ['Transporte', 'transporte'],
+  ['Combustível', 'combustivel'],
+  ['Moradia', 'moradia'],
+  ['Contas da casa', 'contas'],
+  ['Telefone e internet', 'telecom'],
+  ['Saúde', 'saude'],
+  ['Educação', 'educacao'],
+  ['Lazer', 'lazer'],
+  ['Compras', 'compras'],
+  ['Assinaturas', 'assinaturas'],
+  ['Viagens', 'viagens'],
+  ['Outros', 'geral'],
+];
+
+/**
+ * Impostômetro pessoal:
+ * - categorias.perfil_tributario: tipo de consumo usado para estimar os impostos (NULL = palpite pelo nome);
+ * - transacoes.tributos_centavos: valor dos tributos informado na nota fiscal (NULL = estimado);
+ * - novas categorias padrão de despesa, que têm carga de impostos bem diferente das demais.
+ */
+function v12Impostometro(db: SQLiteDatabase) {
+  db.execSync(`
+    ALTER TABLE categorias ADD COLUMN perfil_tributario TEXT;
+    ALTER TABLE transacoes ADD COLUMN tributos_centavos INTEGER CHECK (tributos_centavos >= 0);
+  `);
+
+  // As categorias do usuário continuam depois das padrão.
+  db.runSync(`UPDATE categorias SET ordem = ordem + 100 WHERE tipo = 'despesa' AND padrao = 0`);
+  CATEGORIAS_V12.forEach(([nome, perfil], ordem) => {
+    // Se o usuário já tinha criado uma categoria com esse nome, ela continua sendo dele.
+    db.runSync(
+      `INSERT OR IGNORE INTO categorias (nome, tipo, padrao, ordem) VALUES (?, 'despesa', 1, ?)`,
+      nome,
+      ordem,
+    );
+    db.runSync(
+      `UPDATE categorias SET ordem = ?, perfil_tributario = ? WHERE tipo = 'despesa' AND nome = ?`,
+      ordem,
+      perfil,
+      nome,
+    );
+  });
+}
+
 const MIGRACOES: Migracao[] = [
   v1CriarTabelas,
   v2ImportarDadosAntigos,
@@ -406,6 +457,7 @@ const MIGRACOES: Migracao[] = [
   v9EvolucaoSaude,
   v10AcademyEForum,
   v11DataNascimento,
+  v12Impostometro,
 ];
 
 export function executarMigracoes(db: SQLiteDatabase) {

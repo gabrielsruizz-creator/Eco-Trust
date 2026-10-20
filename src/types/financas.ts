@@ -4,6 +4,8 @@
  * Datas são strings "AAAA-MM-DD" e meses são "AAAA-MM", no fuso do celular.
  */
 
+import type { PerfilTributarioId } from '@/data/carga-tributaria';
+
 export type TipoTransacao = 'receita' | 'despesa';
 
 export type Categoria = {
@@ -12,6 +14,8 @@ export type Categoria = {
   tipo: TipoTransacao;
   /** Categoria criada pelo app (true) ou pelo usuário (false) */
   padrao: boolean;
+  /** Tipo de consumo para estimar os impostos (null = palpite pelo nome da categoria) */
+  perfilTributario: PerfilTributarioId | null;
 };
 
 export type Transacao = {
@@ -23,6 +27,8 @@ export type Transacao = {
   categoriaNome: string;
   data: string;
   recorrente: boolean;
+  /** Tributos informados na nota fiscal ("Valor aprox. dos tributos"). null = o app estima */
+  tributosCentavos: number | null;
   /** Momento em que foi registrado (ISO), quando disponível */
   criadoEm?: string;
 };
