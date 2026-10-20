@@ -445,6 +445,31 @@ function v12Impostometro(db: SQLiteDatabase) {
   });
 }
 
+/**
+ * Impostos além do consumo e leitura de notas:
+ * - impostos_fixos: salário bruto (CLT, para calcular INSS e IR) ou valores informados de INSS/IR,
+ *   IPVA e IPTU anuais e outros impostos mensais (ex.: DAS do MEI);
+ * - transacoes.chave_nota: chave de acesso da NFC-e lida pelo QR Code (evita registrar a mesma nota duas vezes).
+ */
+function v13ImpostosFixosENotas(db: SQLiteDatabase) {
+  db.execSync(`
+    CREATE TABLE impostos_fixos (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      salario_bruto_centavos INTEGER CHECK (salario_bruto_centavos >= 0),
+      dependentes INTEGER NOT NULL DEFAULT 0 CHECK (dependentes >= 0),
+      inss_centavos INTEGER CHECK (inss_centavos >= 0),
+      ir_centavos INTEGER CHECK (ir_centavos >= 0),
+      ipva_anual_centavos INTEGER NOT NULL DEFAULT 0 CHECK (ipva_anual_centavos >= 0),
+      iptu_anual_centavos INTEGER NOT NULL DEFAULT 0 CHECK (iptu_anual_centavos >= 0),
+      outros_mensal_centavos INTEGER NOT NULL DEFAULT 0 CHECK (outros_mensal_centavos >= 0),
+      atualizado_em TEXT NOT NULL
+    );
+
+    ALTER TABLE transacoes ADD COLUMN chave_nota TEXT;
+    CREATE INDEX idx_transacoes_chave_nota ON transacoes (chave_nota);
+  `);
+}
+
 const MIGRACOES: Migracao[] = [
   v1CriarTabelas,
   v2ImportarDadosAntigos,
@@ -458,6 +483,7 @@ const MIGRACOES: Migracao[] = [
   v10AcademyEForum,
   v11DataNascimento,
   v12Impostometro,
+  v13ImpostosFixosENotas,
 ];
 
 export function executarMigracoes(db: SQLiteDatabase) {

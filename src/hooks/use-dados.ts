@@ -25,6 +25,7 @@ import {
   obterImpostosDoLancamento,
   obterImpostosDosLancamentos,
 } from '@/services/impostometro-service';
+import { obterImpostosFixos } from '@/services/impostos-renda-service';
 import { montarHistorico } from '@/services/historico-service';
 import { obterMeta, obterMetas } from '@/services/metas-service';
 import { obterOrcamentos } from '@/services/orcamento-service';
@@ -68,6 +69,12 @@ export function useImpostosDoLancamento(id: number) {
 export function useImpostosDosLancamentos(mes: string) {
   const versao = useVersaoDados();
   return useMemo(() => obterImpostosDosLancamentos(mes), [versao, mes]);
+}
+
+/** Impostos da renda e do patrimônio configurados pelo usuário (null se nada configurado). */
+export function useImpostosFixos() {
+  const versao = useVersaoDados();
+  return useMemo(() => obterImpostosFixos(), [versao]);
 }
 
 export function useImpostometro(mes: string) {

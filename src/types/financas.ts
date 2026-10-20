@@ -177,3 +177,17 @@ export type PerfilInvestidor = {
   /** Data e hora em ISO */
   respondidoEm: string;
 };
+
+/**
+ * Impostos que não vêm das despesas: os da renda (INSS e IR) e os do patrimônio (IPVA e IPTU).
+ * Com salário bruto, INSS e IR são calculados pela tabela; sem ele, valem os valores informados.
+ */
+export type ImpostosFixos = {
+  salarioBrutoCentavos: number | null;
+  dependentes: number;
+  inssCentavos: number | null;
+  irCentavos: number | null;
+  ipvaAnualCentavos: number;
+  iptuAnualCentavos: number;
+  outrosMensalCentavos: number;
+};

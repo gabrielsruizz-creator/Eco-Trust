@@ -61,7 +61,7 @@ export default function ImpostosScreen() {
       <View
         style={[styles.destaque, degrade, { boxShadow: `0 12px 32px ${theme.brilho}` }]}
         accessible
-        accessibilityLabel={`Impostos pagos em ${nomeMes}: ${formatarCentavos(imp.impostosCentavos)}${imp.percentualDosGastos !== null ? `, ${numero(imp.percentualDosGastos)}% do que você gastou` : ''}.`}>
+        accessibilityLabel={`Impostos pagos em ${nomeMes}: ${formatarCentavos(imp.cargaTotalCentavos)}${imp.fixos ? `, sendo ${formatarCentavos(imp.impostosCentavos)} no consumo` : ''}${imp.percentualDosGastos !== null ? `. ${numero(imp.percentualDosGastos)}% do que você gastou foi imposto` : ''}.`}>
         <View style={styles.decoracao} />
         <View style={styles.linha}>
           <Icone nome="impostos" cor="#FFFFFF" tamanho={18} />
@@ -70,12 +70,13 @@ export default function ImpostosScreen() {
           </ThemedText>
         </View>
         <ThemedText style={styles.valorDestaque} numberOfLines={1} adjustsFontSizeToFit>
-          {formatarCentavos(imp.impostosCentavos)}
+          {formatarCentavos(imp.cargaTotalCentavos)}
         </ThemedText>
         <ThemedText type="small" style={styles.textoClaro}>
           {imp.percentualDosGastos !== null
             ? `${numero(imp.percentualDosGastos)}% dos ${formatarCentavos(imp.gastosCentavos)} que você gastou foram para o governo.`
             : 'Nenhuma despesa registrada neste mês.'}
+          {imp.fixos ? ` Mais ${formatarCentavos(imp.fixos.totalCentavos)} da renda e do patrimônio.` : ''}
         </ThemedText>
         {imp.variacao !== null && (
           <View style={styles.pilula}>
@@ -88,7 +89,7 @@ export default function ImpostosScreen() {
         )}
       </View>
 
-      {imp.despesas === 0 ? (
+      {imp.despesas === 0 && (
         <Cartao>
           <ThemedText type="small">
             Registre suas despesas e o EcoTrust mostra quanto delas foi imposto: ICMS, PIS/Cofins, IPI,
@@ -102,7 +103,39 @@ export default function ImpostosScreen() {
             />
           )}
         </Cartao>
-      ) : (
+      )}
+
+      {/* Carga total: consumo + renda + patrimônio */}
+      <Cartao>
+        <ThemedText type="smallBold">Sua carga total</ThemedText>
+        <LinhaCarga rotulo="No consumo (embutido nas compras)" valor={imp.impostosCentavos} />
+        {imp.fixos ? (
+          <>
+            <LinhaCarga
+              rotulo={imp.fixos.descontadosNaFonte ? 'Na renda (INSS e IR do holerite)' : 'Na renda (INSS e IR)'}
+              valor={imp.fixos.inssCentavos + imp.fixos.irCentavos}
+            />
+            <LinhaCarga rotulo="No patrimônio (IPVA e IPTU, por mês)" valor={imp.fixos.ipvaCentavos + imp.fixos.iptuCentavos} />
+            <LinhaCarga rotulo="Outros (ex.: DAS do MEI)" valor={imp.fixos.outrosCentavos} />
+            <Botao
+              texto="Editar impostos da renda"
+              variante="secundario"
+              icone="editar"
+              onPress={() => router.push('/impostos-renda')}
+            />
+          </>
+        ) : (
+          <>
+            <ThemedText type="small" themeColor="textSecondary">
+              Você também paga INSS e Imposto de Renda sobre o salário, e IPVA e IPTU sobre o que tem.
+              Inclua esses valores para ver quanto realmente vai para o governo.
+            </ThemedText>
+            <Botao texto="Incluir impostos da renda" icone="mais" onPress={() => router.push('/impostos-renda')} />
+          </>
+        )}
+      </Cartao>
+
+      {imp.cargaTotalCentavos > 0 && (
         <>
           {/* Dias de trabalho */}
           <Cartao>
@@ -127,7 +160,8 @@ export default function ImpostosScreen() {
                 />
                 <ThemedText type="small" themeColor="textSecondary">
                   Esses impostos equivalem a {numero(imp.percentualDaRenda)}% da sua{' '}
-                  {imp.origemRenda === 'receitas' ? 'renda do mês' : 'renda informada no perfil'} (
+                  {imp.origemRenda === 'receitas' ? 'renda do mês' : 'renda informada no perfil'}
+                  {imp.fixos?.descontadosNaFonte ? ' antes dos descontos' : ''} (
                   {formatarCentavos(imp.rendaCentavos ?? 0)}).
                 </ThemedText>
               </>
@@ -167,6 +201,11 @@ export default function ImpostosScreen() {
             })}
           </Cartao>
 
+        </>
+      )}
+
+      {imp.despesas > 0 && (
+        <>
           {/* Por imposto */}
           <ThemedText type="smallBold" accessibilityRole="header">
             Por imposto
@@ -262,7 +301,7 @@ export default function ImpostosScreen() {
             Em {mes.slice(0, 4)}, até {nomeMes}
           </ThemedText>
           <ThemedText type="smallBold">
-            {formatarCentavos(imp.acumuladoAnoCentavos)} em impostos sobre consumo
+            {formatarCentavos(imp.acumuladoAnoCentavos)} em impostos{imp.fixos ? '' : ' sobre consumo'}
           </ThemedText>
         </View>
       </Cartao>
@@ -289,6 +328,18 @@ export default function ImpostosScreen() {
         />
       </Cartao>
     </Tela>
+  );
+}
+
+function LinhaCarga({ rotulo, valor }: { rotulo: string; valor: number }) {
+  if (valor === 0) return null;
+  return (
+    <View style={styles.linha} accessible accessibilityLabel={`${rotulo}: ${formatarCentavos(valor)}`}>
+      <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+        {rotulo}
+      </ThemedText>
+      <ThemedText type="smallBold">{formatarCentavos(valor)}</ThemedText>
+    </View>
   );
 }
 

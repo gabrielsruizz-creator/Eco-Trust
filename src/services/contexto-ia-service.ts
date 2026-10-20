@@ -94,6 +94,13 @@ export function montarContextoIA() {
     );
     linhas.push(`- Acumulado no ano: ${formatarCentavos(impostos.acumuladoAnoCentavos)}`);
   }
+  if (impostos.fixos) {
+    const f = impostos.fixos;
+    linhas.push(
+      `Impostos da renda e do patrimônio por mês: INSS ${formatarCentavos(f.inssCentavos)}, IR ${formatarCentavos(f.irCentavos)}${f.descontadosNaFonte ? ' (descontados no holerite, calculados pelo salário bruto)' : ''}, IPVA ${formatarCentavos(f.ipvaCentavos)}, IPTU ${formatarCentavos(f.iptuCentavos)}, outros ${formatarCentavos(f.outrosCentavos)}. Carga total do mês: ${formatarCentavos(impostos.cargaTotalCentavos)}` +
+        (impostos.percentualDaRenda !== null ? ` (${impostos.percentualDaRenda}% da renda bruta).` : '.'),
+    );
+  }
 
   const orcamentos = obterOrcamentos(mesAtual());
   if (orcamentos.geral || orcamentos.categorias.length > 0) {

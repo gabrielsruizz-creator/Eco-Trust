@@ -95,7 +95,7 @@ export default function InicioScreen() {
       <Pressable
         onPress={() => router.navigate('/impostos')}
         accessibilityRole="button"
-        accessibilityLabel={`Impostômetro: ${formatarCentavos(impostos.impostosCentavos)} em impostos neste mês${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% dos seus gastos` : ''}. Ver detalhes.`}
+        accessibilityLabel={`Impostômetro: ${formatarCentavos(impostos.cargaTotalCentavos)} em impostos neste mês${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% dos seus gastos` : ''}. Ver detalhes.`}
         style={({ pressed }) => pressed && styles.pressionado}>
         <Cartao>
           <View style={styles.linha}>
@@ -104,7 +104,7 @@ export default function InicioScreen() {
               <ThemedText type="small" themeColor="textSecondary">
                 Impostômetro de {nomeDoMes(mes).split(' ')[0]}
               </ThemedText>
-              <ThemedText style={styles.valorResumo}>{formatarCentavos(impostos.impostosCentavos)}</ThemedText>
+              <ThemedText style={styles.valorResumo}>{formatarCentavos(impostos.cargaTotalCentavos)}</ThemedText>
             </View>
             <Icone nome="avancar" cor={theme.textSecondary} tamanho={16} />
           </View>
