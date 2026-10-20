@@ -8,7 +8,7 @@ import { EtiquetaSituacao, useCorSituacao } from '@/components/situacao-orcament
 import { Botao, Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { useOrcamentos } from '@/hooks/use-dados';
+import { useImpostometro, useOrcamentos } from '@/hooks/use-dados';
 import type { StatusOrcamento } from '@/services/orcamento-service';
 import { mesAtual, nomeDoMes } from '@/utils/datas';
 import { formatarCentavos } from '@/utils/moeda';
@@ -25,6 +25,8 @@ function abrirEdicao(categoria?: number | 'geral') {
 export function PainelOrcamento() {
   const mes = mesAtual();
   const orcamentos = useOrcamentos(mes);
+  const impostometro = useImpostometro(mes);
+  const impostosPorCategoria = new Map(impostometro.porCategoria.map((c) => [c.categoriaId, c.impostosCentavos]));
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   // Se a categoria escolhida perdeu o orçamento, volta a mostrar o total.
   const selecionado = orcamentos.categorias.find((c) => c.categoriaId === selecionadoId) ?? null;
@@ -81,10 +83,16 @@ export function PainelOrcamento() {
               itens={orcamentos.categorias}
               selecionadoId={selecionado?.categoriaId ?? null}
               aoSelecionar={setSelecionadoId}
+              impostosPorCategoria={impostosPorCategoria}
             />
           </Cartao>
 
-          {selecionado && <DetalheCategoria status={selecionado} />}
+          {selecionado && (
+            <DetalheCategoria
+              status={selecionado}
+              impostosCentavos={selecionado.categoriaId !== null ? (impostosPorCategoria.get(selecionado.categoriaId) ?? 0) : 0}
+            />
+          )}
 
           <Botao
             texto="+ Orçamento por categoria"
@@ -135,7 +143,7 @@ function textoRestante(status: StatusOrcamento) {
     : `${base}.`;
 }
 
-function DetalheCategoria({ status }: { status: StatusOrcamento }) {
+function DetalheCategoria({ status, impostosCentavos }: { status: StatusOrcamento; impostosCentavos: number }) {
   const cor = useCorSituacao()(status.situacao);
   return (
     <Cartao>
@@ -157,6 +165,12 @@ function DetalheCategoria({ status }: { status: StatusOrcamento }) {
         rotuloAcessivel={`Orçamento de ${status.nome} usado`}
       />
       <ThemedText type="small">{status.mensagem ?? textoRestante(status)}</ThemedText>
+      {impostosCentavos > 0 && status.gastoCentavos > 0 && (
+        <ThemedText type="small" themeColor="textSecondary">
+          Desse gasto, cerca de {formatarCentavos(impostosCentavos)} (
+          {Math.round((impostosCentavos / status.gastoCentavos) * 100)}%) foram impostos.
+        </ThemedText>
+      )}
       {status.mensagem && status.situacao === 'atencao' && (
         <ThemedText type="small" themeColor="textSecondary">
           {textoRestante(status)}
