@@ -115,6 +115,7 @@ export default function RootLayout() {
           <Stack.Screen name="conquistas" />
           <Stack.Screen name="backup" />
           <Stack.Screen name="imposto-de-renda" />
+          <Stack.Screen name="reforma-tributaria" />
         </Stack.Protected>
       </Stack>
       {/* Por cima de todas as telas */}

@@ -40,7 +40,10 @@ describe('tabela de carga por tipo de consumo', () => {
     ['PEITO FRANGO KG', 'carnes'],
     ['CIG MARLBORO', 'cigarro'],
     ['VODKA SMIRNOFF 998ML', 'bebida destilada'],
+    ['QUEIJO MUSSARELA KG', 'laticínios'],
+    ['IOGURTE NESTLE', 'laticínios'],
     ['COCADA', null],
+    ['PILHA AA DURACELL', null],
   ])('tipo de produto pelo nome no cupom: %s → %s', (descricao, tipo) => {
     expect(perfilDoProduto(descricao)?.nome ?? null).toBe(tipo);
   });

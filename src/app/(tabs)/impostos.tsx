@@ -314,6 +314,14 @@ export default function ImpostosScreen() {
           subtitulo="Saúde e educação que entram na declaração"
           aoTocar={() => router.push('/imposto-de-renda')}
         />
+        <LinhaLista
+          separador
+          icone="impostos"
+          corIcone={theme.brand}
+          titulo="Simulador da reforma tributária"
+          subtitulo="Suas compras na regra nova (IBS e CBS)"
+          aoTocar={() => router.push('/reforma-tributaria')}
+        />
       </Cartao>
 
       {/* Como calculamos */}

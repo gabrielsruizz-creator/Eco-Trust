@@ -289,52 +289,76 @@ export function perfilPorNome(nome: string): PerfilTributarioId {
   return PALAVRAS.find(([padrao]) => padrao.test(n))?.[1] ?? 'geral';
 }
 
+export type TipoProdutoId =
+  | 'cigarro'
+  | 'destilado'
+  | 'bebida'
+  | 'cosmetico'
+  | 'refrigerante'
+  | 'doces'
+  | 'higiene'
+  | 'limpeza'
+  | 'laticinios'
+  | 'carnes'
+  | 'hortifruti'
+  | 'basico';
+
+export type PerfilProduto = PerfilCarga & { id: TipoProdutoId };
+
 /**
  * Produtos com carga bem diferente da média da categoria, reconhecidos pelo nome do item na nota
  * fiscal (que costuma vir abreviado: "CERV HEINEKEN LN", "REFRIG COCA 2L", "DET YPE").
- * Usados quando a nota não informa os tributos e o app tem a lista de itens. A ordem importa:
- * o primeiro padrão que combinar vale ("LEITE CONDENSADO" é doce, não básico).
+ * Usados quando a nota não informa os tributos e o app tem a lista de itens.
  */
-const PRODUTOS: [RegExp, PerfilCarga][] = [
-  [/\b(cigarro|cig |tabaco|fumo)/, { nome: 'cigarro', aliquotas: { icms: 25, pisCofins: 10, ipi: 40, embutidos: 5 } }],
-  [
-    /\b(vodka|vodca|whisky|uisque|cachaca|pinga|gin|rum|tequila|licor|conhaque|aguardente)\b/,
-    { nome: 'bebida destilada', aliquotas: { icms: 25, pisCofins: 12, ipi: 25, embutidos: 8 } },
-  ],
-  [/\b(cerv|cerveja|chopp?|vinho|espumante|sidra)/, { nome: 'bebida alcoólica', aliquotas: { icms: 25, pisCofins: 10, ipi: 15, embutidos: 5 } }],
-  [/\b(perfume|colonia|batom|maquiagem|esmalte|base liq|rimel)/, { nome: 'cosmético', aliquotas: { icms: 25, pisCofins: 12, ipi: 15, embutidos: 8 } }],
-  [
-    /\b(refri|refrig|refrigerante|guarana|coca\b|pepsi|fanta|sprite|energetico|isotonico|suco|nectar|cha pronto)/,
-    { nome: 'refrigerante e suco', aliquotas: { icms: 20, pisCofins: 11, ipi: 4, embutidos: 7 } },
-  ],
-  [
-    /\b(leite cond|creme de leite|chocolate|choc\b|achoc|biscoito|bisc\b|bolacha|wafer|sorvete|bala\b|chiclete|bombom|salgadinho|doce\b)/,
-    { nome: 'doces e guloseimas', aliquotas: { icms: 18, pisCofins: 9, ipi: 5, embutidos: 6 } },
-  ],
+export const TIPOS_PRODUTO: PerfilProduto[] = [
+  { id: 'cigarro', nome: 'cigarro', aliquotas: { icms: 25, pisCofins: 10, ipi: 40, embutidos: 5 } },
+  { id: 'destilado', nome: 'bebida destilada', aliquotas: { icms: 25, pisCofins: 12, ipi: 25, embutidos: 8 } },
+  { id: 'bebida', nome: 'bebida alcoólica', aliquotas: { icms: 25, pisCofins: 10, ipi: 15, embutidos: 5 } },
+  { id: 'cosmetico', nome: 'cosmético', aliquotas: { icms: 25, pisCofins: 12, ipi: 15, embutidos: 8 } },
+  { id: 'refrigerante', nome: 'refrigerante e suco', aliquotas: { icms: 20, pisCofins: 11, ipi: 4, embutidos: 7 } },
+  { id: 'doces', nome: 'doces e guloseimas', aliquotas: { icms: 18, pisCofins: 9, ipi: 5, embutidos: 6 } },
+  { id: 'higiene', nome: 'higiene pessoal', aliquotas: { icms: 18, pisCofins: 10, ipi: 4, embutidos: 6 } },
+  { id: 'limpeza', nome: 'limpeza', aliquotas: { icms: 18, pisCofins: 10, ipi: 5, embutidos: 7 } },
+  { id: 'laticinios', nome: 'laticínios', aliquotas: { icms: 12, pisCofins: 7, embutidos: 6 } },
+  { id: 'carnes', nome: 'carnes', aliquotas: { icms: 12, pisCofins: 3, embutidos: 8 } },
+  { id: 'hortifruti', nome: 'frutas, verduras e legumes', aliquotas: { icms: 3, embutidos: 9 } },
+  { id: 'basico', nome: 'alimento básico', aliquotas: { icms: 8, pisCofins: 1, embutidos: 7 } },
+];
+
+const TIPO_POR_ID = new Map(TIPOS_PRODUTO.map((t) => [t.id, t]));
+
+export function tipoProduto(id: string): PerfilProduto | null {
+  return TIPO_POR_ID.get(id as TipoProdutoId) ?? null;
+}
+
+/** Palavras do nome do item → tipo. A ordem importa: vale o primeiro ("LEITE CONDENSADO" é doce). */
+const PADROES_PRODUTO: [RegExp, TipoProdutoId][] = [
+  [/\b(cigarro|cig |tabaco|fumo)/, 'cigarro'],
+  [/\b(vodka|vodca|whisky|uisque|cachaca|pinga|gin|rum|tequila|licor|conhaque|aguardente)\b/, 'destilado'],
+  [/\b(cerv|cerveja|chopp?|vinho|espumante|sidra)/, 'bebida'],
+  [/\b(perfume|colonia|batom|maquiagem|esmalte|base liq|rimel)/, 'cosmetico'],
+  [/\b(refri|refrig|refrigerante|guarana|coca\b|pepsi|fanta|sprite|energetico|isotonico|suco|nectar|cha pronto)/, 'refrigerante'],
+  [/\b(leite cond|chocolate|choc\b|achoc|biscoito|bisc\b|bolacha|wafer|sorvete|bala\b|chiclete|bombom|salgadinho|doce\b)/, 'doces'],
   [
     /\b(shampoo|xampu|condicionador|sabonete|sab liq|creme dental|cr dental|pasta de dente|desodorante|desod|papel hig|pap hig|absorvente|fralda|escova dent|fio dental)/,
-    { nome: 'higiene pessoal', aliquotas: { icms: 18, pisCofins: 10, ipi: 4, embutidos: 6 } },
+    'higiene',
   ],
-  [
-    /\b(detergente|det\b|sabao|sab po|amaciante|amac\b|desinfetante|agua sanit|alvejante|limpador|multiuso|esponja|lustra|inseticida)/,
-    { nome: 'limpeza', aliquotas: { icms: 18, pisCofins: 10, ipi: 5, embutidos: 7 } },
-  ],
+  [/\b(detergente|det\b|sabao|sab po|amaciante|amac\b|desinfetante|agua sanit|alvejante|limpador|multiuso|esponja|lustra|inseticida)/, 'limpeza'],
+  [/\b(queijo|qjo|mussarela|mucarela|muss\b|requeijao|iogurte|iog\b|creme de leite|cr leite|coalhada|ricota|petit suisse)/, 'laticinios'],
   [
     /\b(carne|bife|patinho|acem|alcatra|picanha|costela|frango|file|peito|coxa|sobrecoxa|linguica|lingui|peixe|tilapia|sardinha|porco|lombo|pernil|moida)/,
-    { nome: 'carnes', aliquotas: { icms: 12, pisCofins: 3, embutidos: 8 } },
+    'carnes',
   ],
   [
     /\b(banana|maca|laranja|limao|mamao|melancia|abacaxi|uva|manga|tomate|batata|cebola|alho|cenoura|alface|couve|abobrinha|pepino|pimentao|chuchu|mandioca|aipim|beterraba|repolho|brocolis|hortifruti|verdura|legume|fruta)\b/,
-    { nome: 'frutas, verduras e legumes', aliquotas: { icms: 3, embutidos: 9 } },
+    'hortifruti',
   ],
-  [
-    /\b(arroz|feijao|leite|ovos?|farinha|fuba|pao frances|macarrao|cafe|oleo de soja|margarina|manteiga|sal\b|acucar)/,
-    { nome: 'alimento básico', aliquotas: { icms: 8, pisCofins: 1, embutidos: 7 } },
-  ],
+  [/\b(arroz|feijao|leite|ovos?|farinha|fuba|pao frances|macarrao|cafe|oleo de soja|margarina|manteiga|sal\b|acucar)/, 'basico'],
 ];
 
 /** Tipo de produto pelo nome do item na nota (null = usa o da categoria da despesa). */
-export function perfilDoProduto(descricao: string): PerfilCarga | null {
+export function perfilDoProduto(descricao: string): PerfilProduto | null {
   const n = ` ${normalizar(descricao)} `;
-  return PRODUTOS.find(([padrao]) => padrao.test(n))?.[1] ?? null;
+  const id = PADROES_PRODUTO.find(([padrao]) => padrao.test(n))?.[1];
+  return id ? TIPO_POR_ID.get(id)! : null;
 }

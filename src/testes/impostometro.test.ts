@@ -129,7 +129,7 @@ describe('estimativa produto a produto', () => {
   const itens = [
     { descricao: 'CERV HEINEKEN LN', valorTotalCentavos: 5_000 }, // 55%
     { descricao: 'ARROZ 5KG', valorTotalCentavos: 3_000 }, // 16%
-    { descricao: 'QUEIJO KG', valorTotalCentavos: 2_000 }, // não reconhecido: 23% da categoria
+    { descricao: 'PILHA AA DURACELL', valorTotalCentavos: 2_000 }, // não reconhecido: 23% da categoria
   ];
 
   function comNota(valorCentavos: number, tributosCentavos: number | null) {

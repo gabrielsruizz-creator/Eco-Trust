@@ -28,6 +28,7 @@ import {
 } from '@/services/impostometro-service';
 import { obterImpostosFixos } from '@/services/impostos-renda-service';
 import { obterDeducoesIR } from '@/services/ir-service';
+import { obterSimulacaoReforma } from '@/services/reforma-service';
 import { obterNotaDoLancamento } from '@/services/nota-fiscal-service';
 import { montarHistorico } from '@/services/historico-service';
 import { obterMeta, obterMetas } from '@/services/metas-service';
@@ -96,6 +97,12 @@ export function useUltimoBackup() {
 export function useDeducoesIR(ano: number) {
   const versao = useVersaoDados();
   return useMemo(() => obterDeducoesIR(ano), [versao, ano]);
+}
+
+/** Simulação das compras do mês na regra nova da reforma tributária. */
+export function useSimulacaoReforma(mes: string) {
+  const versao = useVersaoDados();
+  return useMemo(() => obterSimulacaoReforma(mes), [versao, mes]);
 }
 
 export function useImpostometro(mes: string) {
