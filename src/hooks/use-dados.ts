@@ -28,6 +28,7 @@ import {
 } from '@/services/impostometro-service';
 import { obterImpostosFixos } from '@/services/impostos-renda-service';
 import { obterDeducoesIR } from '@/services/ir-service';
+import { obterAnalisePrecos } from '@/services/precos-service';
 import { obterSimulacaoReforma } from '@/services/reforma-service';
 import { obterNotaDoLancamento, obterResumoCpfNaNota } from '@/services/nota-fiscal-service';
 import { montarHistorico } from '@/services/historico-service';
@@ -109,6 +110,12 @@ export function useSimulacaoReforma(mes: string) {
 export function useCpfNaNota(ano: number) {
   const versao = useVersaoDados();
   return useMemo(() => obterResumoCpfNaNota(ano), [versao, ano]);
+}
+
+/** Inflação pessoal e onde cada produto saiu mais barato (itens das notas dos últimos 12 meses). */
+export function useAnalisePrecos() {
+  const versao = useVersaoDados();
+  return useMemo(() => obterAnalisePrecos(), [versao]);
 }
 
 export function useImpostometro(mes: string) {

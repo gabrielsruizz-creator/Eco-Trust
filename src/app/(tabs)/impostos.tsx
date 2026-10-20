@@ -357,6 +357,14 @@ export default function ImpostosScreen() {
           subtitulo="Suas compras na regra nova (IBS e CBS)"
           aoTocar={() => router.push('/reforma-tributaria')}
         />
+        <LinhaLista
+          separador
+          icone="compras"
+          corIcone={theme.brand}
+          titulo="Meus produtos e preços"
+          subtitulo="Sua inflação pessoal e onde é mais barato"
+          aoTocar={() => router.push('/meus-produtos')}
+        />
       </Cartao>
 
       {/* CPF na nota */}

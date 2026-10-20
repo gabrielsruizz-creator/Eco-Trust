@@ -105,3 +105,49 @@ export function listarNotasDoPeriodo(inicio: string, fim: string): { chave: stri
     )
     .map((l) => ({ chave: l.chave, cpfNaNota: l.cpf_na_nota === null ? null : l.cpf_na_nota === 1 }));
 }
+
+export type RegistroPreco = {
+  descricao: string;
+  codigo: string | null;
+  quantidade: number;
+  unidade: string | null;
+  valorUnitarioCentavos: number | null;
+  valorTotalCentavos: number;
+  /** AAAA-MM-DD da compra */
+  data: string;
+  loja: string | null;
+};
+
+/** Todos os itens comprados desde uma data, com a data da compra e a loja, do mais antigo ao mais novo. */
+export function listarCompradosDesde(inicio: string): RegistroPreco[] {
+  return getBanco()
+    .getAllSync<{
+      descricao: string;
+      codigo: string | null;
+      quantidade: number;
+      unidade: string | null;
+      valor_unitario_centavos: number | null;
+      valor_total_centavos: number;
+      data: string;
+      emitente: string | null;
+    }>(
+      `SELECT i.descricao, i.codigo, i.quantidade, i.unidade, i.valor_unitario_centavos, i.valor_total_centavos,
+              t.data, n.emitente
+       FROM itens_nota i
+       JOIN transacoes t ON t.id = i.transacao_id
+       JOIN notas_fiscais n ON n.transacao_id = i.transacao_id
+       WHERE t.data >= ?
+       ORDER BY t.data, i.transacao_id, i.ordem`,
+      inicio,
+    )
+    .map((l) => ({
+      descricao: l.descricao,
+      codigo: l.codigo,
+      quantidade: l.quantidade,
+      unidade: l.unidade,
+      valorUnitarioCentavos: l.valor_unitario_centavos,
+      valorTotalCentavos: l.valor_total_centavos,
+      data: l.data,
+      loja: l.emitente,
+    }));
+}
