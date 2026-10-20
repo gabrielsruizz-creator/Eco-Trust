@@ -470,6 +470,35 @@ function v13ImpostosFixosENotas(db: SQLiteDatabase) {
   `);
 }
 
+/**
+ * Notas fiscais lidas pelo QR Code: loja, endereço de consulta e os itens comprados.
+ * Ficam ligadas ao lançamento e são apagadas junto com ele.
+ */
+function v14ItensDaNota(db: SQLiteDatabase) {
+  db.execSync(`
+    CREATE TABLE notas_fiscais (
+      transacao_id INTEGER PRIMARY KEY REFERENCES transacoes (id) ON DELETE CASCADE,
+      chave TEXT NOT NULL,
+      url TEXT,
+      emitente TEXT,
+      importada_em TEXT NOT NULL
+    );
+
+    CREATE TABLE itens_nota (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      transacao_id INTEGER NOT NULL REFERENCES transacoes (id) ON DELETE CASCADE,
+      ordem INTEGER NOT NULL,
+      descricao TEXT NOT NULL,
+      codigo TEXT,
+      quantidade REAL NOT NULL CHECK (quantidade > 0),
+      unidade TEXT,
+      valor_unitario_centavos INTEGER,
+      valor_total_centavos INTEGER NOT NULL CHECK (valor_total_centavos >= 0)
+    );
+    CREATE INDEX idx_itens_nota_transacao ON itens_nota (transacao_id);
+  `);
+}
+
 const MIGRACOES: Migracao[] = [
   v1CriarTabelas,
   v2ImportarDadosAntigos,
@@ -484,6 +513,7 @@ const MIGRACOES: Migracao[] = [
   v11DataNascimento,
   v12Impostometro,
   v13ImpostosFixosENotas,
+  v14ItensDaNota,
 ];
 
 export function executarMigracoes(db: SQLiteDatabase) {

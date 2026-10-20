@@ -1,7 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
 
 import { FormularioLancamento, type SugestaoLancamento } from '@/components/formulario-lancamento';
+import { anexarNotaAoLancamento, retirarNotaPendente } from '@/services/nota-fiscal-service';
 import { adicionarTransacao } from '@/services/transacoes-service';
+import type { NovaTransacao } from '@/types/financas';
 import { dataValida } from '@/utils/datas';
 
 type Parametros = {
@@ -20,6 +22,13 @@ type Parametros = {
 function inteiro(texto?: string) {
   const n = Number(texto);
   return texto && Number.isInteger(n) && n >= 0 ? n : undefined;
+}
+
+/** Salva a despesa e, se ela veio de uma nota lida pelo QR Code, guarda a loja e os itens junto. */
+function salvar(dados: NovaTransacao) {
+  const id = adicionarTransacao(dados);
+  const nota = dados.chaveNota ? retirarNotaPendente(dados.chaveNota) : null;
+  if (nota) anexarNotaAoLancamento(id, nota);
 }
 
 export default function NovoLancamentoScreen() {
@@ -41,7 +50,7 @@ export default function NovoLancamentoScreen() {
   return (
     <FormularioLancamento
       titulo={sugestao ? 'Despesa da nota fiscal' : 'Novo lançamento'}
-      aoSalvar={adicionarTransacao}
+      aoSalvar={salvar}
       tipoInicial={p.tipo === 'receita' ? 'receita' : 'despesa'}
       sugestao={sugestao}
     />

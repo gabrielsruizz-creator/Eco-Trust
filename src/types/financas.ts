@@ -193,3 +193,23 @@ export type ImpostosFixos = {
   iptuAnualCentavos: number;
   outrosMensalCentavos: number;
 };
+
+/** Um produto ou serviço da nota fiscal (como aparece na consulta da SEFAZ). */
+export type ItemNota = {
+  descricao: string;
+  codigo: string | null;
+  /** Pode ter casas decimais (ex.: 0,456 kg) */
+  quantidade: number;
+  unidade: string | null;
+  valorUnitarioCentavos: number | null;
+  valorTotalCentavos: number;
+};
+
+/** Nota fiscal guardada junto com um lançamento (lida pelo QR Code). */
+export type NotaSalva = {
+  chave: string;
+  /** Página de consulta na SEFAZ (.gov.br) */
+  url: string | null;
+  emitente: string | null;
+  itens: ItemNota[];
+};

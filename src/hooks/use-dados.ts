@@ -26,6 +26,7 @@ import {
   obterImpostosDosLancamentos,
 } from '@/services/impostometro-service';
 import { obterImpostosFixos } from '@/services/impostos-renda-service';
+import { obterNotaDoLancamento } from '@/services/nota-fiscal-service';
 import { montarHistorico } from '@/services/historico-service';
 import { obterMeta, obterMetas } from '@/services/metas-service';
 import { obterOrcamentos } from '@/services/orcamento-service';
@@ -75,6 +76,12 @@ export function useImpostosDosLancamentos(mes: string) {
 export function useImpostosFixos() {
   const versao = useVersaoDados();
   return useMemo(() => obterImpostosFixos(), [versao]);
+}
+
+/** Loja, link da SEFAZ e itens da nota de um lançamento (null se não veio de nota lida pelo QR Code). */
+export function useNotaDoLancamento(id: number) {
+  const versao = useVersaoDados();
+  return useMemo(() => (Number.isInteger(id) ? obterNotaDoLancamento(id) : null), [versao, id]);
 }
 
 export function useImpostometro(mes: string) {

@@ -9,6 +9,8 @@
  * Segurança: o conteúdo do QR Code vem de fora. Só buscamos e abrimos endereços de governo (.gov.br).
  */
 
+import { buscarNotaDaTransacao, gravarNotaDaTransacao } from '@/repositories/notas-repository';
+import type { ItemNota, NotaSalva } from '@/types/financas';
 import { dataValida, hoje } from '@/utils/datas';
 import { lerValorEmCentavos } from '@/utils/moeda';
 
@@ -48,7 +50,10 @@ export type DadosNota = {
   /** AAAA-MM-DD */
   data: string | null;
   emitente: string | null;
+  itens: ItemNota[];
 };
+
+const MAX_ITENS = 300;
 
 /** Dígito verificador da chave de acesso (módulo 11, pesos 2 a 9). */
 function digitoVerificador(chave43: string) {
@@ -186,6 +191,45 @@ export function lerPaginaNota(html: string): Pick<DadosNota, 'valorCentavos' | '
   };
 }
 
+const NUMERO = String.raw`(\d{1,3}(?:\.\d{3})+(?:,\d{1,4})?|\d+(?:,\d{1,4})?)`;
+
+function lerQuantidade(texto: string) {
+  const n = Number(texto.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+/**
+ * Lista de produtos da página da SEFAZ. No layout padrão (usado pela maioria dos estados) cada item
+ * é uma linha da tabela com: nome, (Código: ...), Qtde.:, UN:, Vl. Unit.: e Vl. Total.
+ */
+export function lerItensDaPagina(html: string): ItemNota[] {
+  const itens: ItemNota[] = [];
+  const linhas = html.split(/<tr[\s>]/i).slice(1);
+  for (const linha of linhas) {
+    if (itens.length >= MAX_ITENS) break;
+    const texto = paraTexto(linha.split(/<\/tr>/i)[0]);
+    const total = new RegExp(String.raw`Vl\.?\s*Total\s*:?\s*(?:R\$)?\s*${NUMERO}`, 'i').exec(texto)?.[1];
+    const quantidade = new RegExp(String.raw`Qtde\.?\s*:?\s*${NUMERO}`, 'i').exec(texto)?.[1];
+    if (!total || !quantidade) continue;
+
+    const nomeHtml = /class="[^"]*txtTit[^"]*"[^>]*>([^<]{1,160})</i.exec(linha)?.[1];
+    const descricao = (nomeHtml ? paraTexto(nomeHtml) : texto.split(/\(\s*C[óo]digo/i)[0]).trim().slice(0, 120);
+    const valorTotal = lerValorEmCentavos(total);
+    if (!descricao || valorTotal === null) continue;
+
+    const unitario = new RegExp(String.raw`Vl\.?\s*Unit\.?\s*:?\s*(?:R\$)?\s*${NUMERO}`, 'i').exec(texto)?.[1];
+    itens.push({
+      descricao,
+      codigo: /C[óo]digo\s*:?\s*([\w.-]{1,30})/i.exec(texto)?.[1] ?? null,
+      quantidade: lerQuantidade(quantidade),
+      unidade: /\bUN\s*:\s*([A-Za-z]{1,6})/.exec(texto)?.[1]?.toUpperCase() ?? null,
+      valorUnitarioCentavos: unitario ? lerValorEmCentavos(unitario) : null,
+      valorTotalCentavos: valorTotal,
+    });
+  }
+  return itens;
+}
+
 /** Busca a página da SEFAZ (tenta https primeiro; muitos QR Codes ainda usam http). */
 async function buscarPagina(url: string): Promise<string | null> {
   const tentativas = url.startsWith('http:') ? [url.replace(/^http:/, 'https:'), url] : [url];
@@ -213,6 +257,7 @@ export async function consultarNota(qr: QrNota): Promise<DadosNota> {
     tributosCentavos: null,
     data: null,
     emitente: null,
+    itens: [],
   };
   if (!qr.url) return base;
   const html = await buscarPagina(qr.url);
@@ -229,5 +274,37 @@ export async function consultarNota(qr: QrNota): Promise<DadosNota> {
         : null,
     data: pagina.data,
     emitente: pagina.emitente,
+    itens: lerItensDaPagina(html),
   };
+}
+
+/*
+ * A leitura acontece na tela da câmera, mas a despesa só é criada quando o usuário salva o formulário.
+ * Os itens ficam guardados aqui (em memória) até lá, pela chave da nota.
+ */
+const notasPendentes = new Map<string, DadosNota>();
+
+export function guardarNotaPendente(nota: DadosNota) {
+  notasPendentes.clear();
+  notasPendentes.set(nota.chave.chave, nota);
+}
+
+export function retirarNotaPendente(chave: string): DadosNota | null {
+  const nota = notasPendentes.get(chave) ?? null;
+  notasPendentes.delete(chave);
+  return nota;
+}
+
+/** Guarda a loja, o endereço da consulta e os itens da nota junto com o lançamento. */
+export function anexarNotaAoLancamento(transacaoId: number, nota: DadosNota) {
+  gravarNotaDaTransacao(transacaoId, {
+    chave: nota.chave.chave,
+    url: nota.url,
+    emitente: nota.emitente,
+    itens: nota.itens,
+  });
+}
+
+export function obterNotaDoLancamento(transacaoId: number): NotaSalva | null {
+  return buscarNotaDaTransacao(transacaoId);
 }

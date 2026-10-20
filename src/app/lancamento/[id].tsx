@@ -2,11 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ItensDaNota } from '@/components/itens-nota';
 import { Botao, Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useImpostosDoLancamento, useTransacao } from '@/hooks/use-dados';
+import { useImpostosDoLancamento, useNotaDoLancamento, useTransacao } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
 import { excluirTransacao } from '@/services/transacoes-service';
 import { formatarDataPorExtenso } from '@/utils/datas';
@@ -17,6 +18,7 @@ export default function DetalheLancamentoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const transacao = useTransacao(Number(id));
   const impostos = useImpostosDoLancamento(Number(id));
+  const nota = useNotaDoLancamento(Number(id));
 
   function confirmarExclusao() {
     if (!transacao) return;
@@ -113,6 +115,8 @@ export default function DetalheLancamentoScreen() {
                   ))}
                 </Cartao>
               )}
+
+              <ItensDaNota nota={nota} chaveNota={transacao.chaveNota} valorPagoCentavos={transacao.valorCentavos} />
 
               {transacao.recorrente && (
                 <View style={[styles.aviso, { backgroundColor: theme.accentSoft }]}>

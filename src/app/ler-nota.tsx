@@ -11,7 +11,14 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { sugerirCategoriaPorLoja } from '@/services/categorias-service';
-import { consultarNota, lerQrCode } from '@/services/nota-fiscal-service';
+import {
+  anexarNotaAoLancamento,
+  consultarNota,
+  guardarNotaPendente,
+  lerQrCode,
+  obterNotaDoLancamento,
+  type QrNota,
+} from '@/services/nota-fiscal-service';
 import { obterTransacaoPorChaveNota } from '@/services/transacoes-service';
 import { formatarData } from '@/utils/datas';
 import { vibrarErro, vibrarSucesso } from '@/utils/vibracao';
@@ -30,6 +37,24 @@ export default function LerNotaScreen() {
     setBuscando(false);
   }
 
+  /** Nota registrada antes de existir a lista de itens: busca de novo e completa o lançamento. */
+  async function importarItens(qr: QrNota, transacaoId: number) {
+    setBuscando(true);
+    const nota = await consultarNota(qr);
+    if (nota.itens.length === 0) {
+      vibrarErro();
+      Alert.alert(
+        'Itens não encontrados',
+        'Não foi possível ler os produtos no site da SEFAZ deste estado. Tente de novo mais tarde.',
+        [{ text: 'OK', onPress: liberar }],
+      );
+      return;
+    }
+    anexarNotaAoLancamento(transacaoId, nota);
+    vibrarSucesso();
+    router.replace({ pathname: '/lancamento/[id]', params: { id: String(transacaoId) } });
+  }
+
   async function aoLer({ data }: BarcodeScanningResult) {
     if (ocupado.current) return;
     ocupado.current = true;
@@ -45,16 +70,20 @@ export default function LerNotaScreen() {
 
     const existente = obterTransacaoPorChaveNota(qr.chave.chave);
     if (existente) {
+      const semItens = !obterNotaDoLancamento(existente.id)?.itens.length;
       vibrarErro();
       Alert.alert(
         'Nota já registrada',
-        `Você registrou esta nota em ${formatarData(existente.data)} (${existente.descricao || existente.categoriaNome}).`,
+        `Você registrou esta nota em ${formatarData(existente.data)} (${existente.descricao || existente.categoriaNome}).` +
+          (semItens ? ' Quer importar a lista de produtos para esse lançamento?' : ''),
         [
           { text: 'Ler outra', onPress: liberar },
-          {
-            text: 'Ver lançamento',
-            onPress: () => router.replace({ pathname: '/lancamento/[id]', params: { id: String(existente.id) } }),
-          },
+          semItens
+            ? { text: 'Importar itens', onPress: () => importarItens(qr, existente.id) }
+            : {
+                text: 'Ver lançamento',
+                onPress: () => router.replace({ pathname: '/lancamento/[id]', params: { id: String(existente.id) } }),
+              },
         ],
       );
       return;
@@ -63,6 +92,7 @@ export default function LerNotaScreen() {
     setBuscando(true);
     const nota = await consultarNota(qr);
     vibrarSucesso();
+    guardarNotaPendente(nota);
     const loja = nota.emitente;
     const categoria = loja ? sugerirCategoriaPorLoja(loja) : null;
     router.replace({
@@ -70,7 +100,7 @@ export default function LerNotaScreen() {
       params: {
         tipo: 'despesa',
         chave: nota.chave.chave,
-        resumo: `NFC-e nº ${nota.chave.numero} · ${nota.chave.uf}`,
+        resumo: `NFC-e nº ${nota.chave.numero} · ${nota.chave.uf}${nota.itens.length ? ` · ${nota.itens.length} ${nota.itens.length === 1 ? 'item' : 'itens'}` : ''}`,
         ...(nota.url && { url: nota.url }),
         ...(nota.valorCentavos && { valor: String(nota.valorCentavos) }),
         ...(nota.tributosCentavos !== null && { tributos: String(nota.tributosCentavos) }),
