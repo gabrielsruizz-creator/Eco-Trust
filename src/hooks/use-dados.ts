@@ -20,7 +20,11 @@ import { obterDashboard } from '@/services/dashboard-service';
 import { obterAnaliseSalva, obterEvolucao } from '@/services/evolucao-service';
 import { obterForum, obterTopico } from '@/services/forum-service';
 import { obterJornada } from '@/services/gamificacao-service';
-import { obterImpostometro, obterImpostosDoLancamento } from '@/services/impostometro-service';
+import {
+  obterImpostometro,
+  obterImpostosDoLancamento,
+  obterImpostosDosLancamentos,
+} from '@/services/impostometro-service';
 import { montarHistorico } from '@/services/historico-service';
 import { obterMeta, obterMetas } from '@/services/metas-service';
 import { obterOrcamentos } from '@/services/orcamento-service';
@@ -58,6 +62,12 @@ export function useTransacao(id: number) {
 export function useImpostosDoLancamento(id: number) {
   const versao = useVersaoDados();
   return useMemo(() => (Number.isInteger(id) ? obterImpostosDoLancamento(obterTransacao(id)) : null), [versao, id]);
+}
+
+/** Impostos de cada despesa do mês, pelo id do lançamento. */
+export function useImpostosDosLancamentos(mes: string) {
+  const versao = useVersaoDados();
+  return useMemo(() => obterImpostosDosLancamentos(mes), [versao, mes]);
 }
 
 export function useImpostometro(mes: string) {

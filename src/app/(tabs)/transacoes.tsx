@@ -9,7 +9,7 @@ import { Botao, Cartao, IconeCirculo, Segmentado, Tela } from '@/components/tela
 import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useDiasComLancamentos, useHistorico } from '@/hooks/use-dados';
+import { useDiasComLancamentos, useHistorico, useImpostosDosLancamentos } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
 import { rotuloCategoriaFiltro } from '@/services/historico-service';
 import type { TipoTransacao, Transacao } from '@/types/financas';
@@ -38,6 +38,10 @@ export default function TransacoesScreen() {
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const historico = useHistorico(mes, tipo === 'todos' ? undefined : tipo, categoriaId, dia, busca);
   const diasComLancamentos = useDiasComLancamentos();
+  const impostos = useImpostosDosLancamentos(mes);
+  const impostosFiltrados = historico.grupos
+    .flatMap((g) => g.transacoes)
+    .reduce((soma, t) => soma + (impostos.get(t.id)?.centavos ?? 0), 0);
 
   const ehMesAtual = mes >= mesAtual();
   const filtrando = tipo !== 'todos' || historico.categoriaAplicada !== null || dia !== null || busca.trim() !== '';
@@ -175,6 +179,20 @@ export default function TransacoesScreen() {
           {historico.totais.quantidade} {historico.totais.quantidade === 1 ? 'lançamento' : 'lançamentos'}
           {filtrando ? ' com os filtros escolhidos' : ''}
         </ThemedText>
+        {impostosFiltrados > 0 && (
+          <Pressable
+            onPress={() => router.navigate('/impostos')}
+            accessibilityRole="link"
+            accessibilityLabel={`${formatarCentavos(impostosFiltrados)} em impostos nessas despesas. Abrir o Impostômetro`}
+            style={({ pressed }) => [styles.linhaImpostos, pressed && styles.pressionado]}>
+            <Icone nome="impostos" cor={theme.accentText} tamanho={16} />
+            <ThemedText type="small" style={styles.flex}>
+              <ThemedText type="smallBold">{formatarCentavos(impostosFiltrados)}</ThemedText> em impostos
+              nessas despesas
+            </ThemedText>
+            <Icone nome="avancar" cor={theme.textSecondary} tamanho={14} />
+          </Pressable>
+        )}
       </Cartao>
 
       {/* Lista agrupada por dia */}
@@ -202,7 +220,7 @@ export default function TransacoesScreen() {
           </ThemedText>
           <Cartao style={styles.cartaoDia}>
             {grupo.transacoes.map((t, i) => (
-              <ItemTransacao key={t.id} transacao={t} separador={i > 0} />
+              <ItemTransacao key={t.id} transacao={t} separador={i > 0} impostosCentavos={impostos.get(t.id)?.centavos ?? 0} />
             ))}
           </Cartao>
         </View>
@@ -219,7 +237,16 @@ function horaDoRegistro(t: Transacao) {
   return criado.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function ItemTransacao({ transacao: t, separador }: { transacao: Transacao; separador: boolean }) {
+function ItemTransacao({
+  transacao: t,
+  separador,
+  impostosCentavos,
+}: {
+  transacao: Transacao;
+  separador: boolean;
+  /** Impostos da despesa (da nota ou estimados); 0 em receitas */
+  impostosCentavos: number;
+}) {
   const theme = useTheme();
   const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
   const titulo = t.descricao || t.categoriaNome;
@@ -231,7 +258,7 @@ function ItemTransacao({ transacao: t, separador }: { transacao: Transacao; sepa
     <Pressable
       onPress={() => router.push({ pathname: '/lancamento/[id]', params: { id: String(t.id) } })}
       accessibilityRole="button"
-      accessibilityLabel={`${receita ? 'Receita' : 'Despesa'}: ${titulo}, ${formatarCentavos(t.valorCentavos)}, ${t.categoriaNome}, ${formatarData(t.data)}${t.recorrente ? ', recorrente' : ''}`}
+      accessibilityLabel={`${receita ? 'Receita' : 'Despesa'}: ${titulo}, ${formatarCentavos(t.valorCentavos)}${impostosCentavos > 0 ? `, ${formatarCentavos(impostosCentavos)} de impostos` : ''}, ${t.categoriaNome}, ${formatarData(t.data)}${t.recorrente ? ', recorrente' : ''}`}
       accessibilityHint="Abre os detalhes do lançamento"
       style={({ pressed }) => [
         styles.item,
@@ -252,10 +279,16 @@ function ItemTransacao({ transacao: t, separador }: { transacao: Transacao; sepa
         <ThemedText type="smallBold" style={{ color: receita ? theme.positive : theme.negative }}>
           {receita ? '+' : '−'} {formatarCentavos(t.valorCentavos)}
         </ThemedText>
-        {hora && (
+        {impostosCentavos > 0 ? (
           <ThemedText type="small" themeColor="textSecondary">
-            {hora}
+            {formatarCentavos(impostosCentavos)} imp.
           </ThemedText>
+        ) : (
+          hora && (
+            <ThemedText type="small" themeColor="textSecondary">
+              {hora}
+            </ThemedText>
+          )
         )}
       </View>
     </Pressable>
@@ -376,6 +409,12 @@ const styles = StyleSheet.create({
   total: {
     flex: 1,
     gap: Spacing.half,
+  },
+  linhaImpostos: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    minHeight: 32,
   },
   vazio: {
     gap: Spacing.three,

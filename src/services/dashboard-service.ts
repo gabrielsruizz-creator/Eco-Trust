@@ -4,11 +4,13 @@
 
 import { obterPerfilFinanceiro } from '@/repositories/perfil-financeiro-repository';
 import { somarTotaisGerais } from '@/repositories/transacoes-repository';
-import { gerarInsights } from '@/services/insights-service';
+import { obterResumoImpostos } from '@/services/impostometro-service';
+import { gerarInsights, type ResumoImpostosInsight } from '@/services/insights-service';
 import { obterOrcamentos, type ResumoOrcamentos } from '@/services/orcamento-service';
 import { obterResumoDoMes } from '@/services/resumo-service';
 import type { Dashboard, PerfilFinanceiro, ResumoMes } from '@/types/financas';
 import { somarMeses } from '@/utils/datas';
+import { variacaoPercentual } from '@/utils/percentual';
 
 export type EntradaDashboard = {
   resumoAtual: ResumoMes;
@@ -16,13 +18,8 @@ export type EntradaDashboard = {
   totaisGerais: { receitasCentavos: number; despesasCentavos: number };
   perfil: PerfilFinanceiro | null;
   orcamentos?: ResumoOrcamentos | null;
+  impostos?: ResumoImpostosInsight | null;
 };
-
-/** Variação percentual arredondada; null quando não há base para comparar. */
-export function variacaoPercentual(atual: number, anterior: number): number | null {
-  if (anterior <= 0) return null;
-  return Math.round(((atual - anterior) / anterior) * 100);
-}
 
 export function calcularDashboard({
   resumoAtual,
@@ -30,6 +27,7 @@ export function calcularDashboard({
   totaisGerais,
   perfil,
   orcamentos,
+  impostos,
 }: EntradaDashboard): Dashboard {
   const meta = perfil?.metaEconomiaCentavos ?? 0;
   const economizado = resumoAtual.receitasCentavos - resumoAtual.despesasCentavos;
@@ -77,6 +75,7 @@ export function calcularDashboard({
       disponivelParaGastarCentavos: disponivel,
       origemLimite,
       orcamentosCategorias: orcamentos?.categorias ?? [],
+      impostos: impostos ?? null,
     }),
   };
 }
@@ -88,5 +87,6 @@ export function obterDashboard(mes: string): Dashboard {
     totaisGerais: somarTotaisGerais(),
     perfil: obterPerfilFinanceiro(),
     orcamentos: obterOrcamentos(mes),
+    impostos: obterResumoImpostos(mes),
   });
 }

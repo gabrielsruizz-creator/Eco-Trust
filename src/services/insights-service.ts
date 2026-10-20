@@ -12,6 +12,14 @@ const MINIMO_COMPARACAO_CENTAVOS = 5000;
 /** Aumento a partir do qual vale avisar */
 const AUMENTO_RELEVANTE = 0.15;
 
+/** Impostos sobre consumo do mês (do Impostômetro). */
+export type ResumoImpostosInsight = {
+  impostosCentavos: number;
+  percentualDosGastos: number;
+  /** Categoria que mais pagou imposto no mês */
+  maiorCategoria: { nome: string; impostosCentavos: number } | null;
+};
+
 export type EntradaInsights = {
   resumoAtual: ResumoMes;
   resumoAnterior: ResumoMes;
@@ -21,6 +29,7 @@ export type EntradaInsights = {
   /** De onde vem o limite do mês: orçamento geral definido pelo usuário ou renda − meta */
   origemLimite: 'orcamento' | 'renda' | null;
   orcamentosCategorias: StatusOrcamento[];
+  impostos?: ResumoImpostosInsight | null;
 };
 
 function nomeCategoria(nome: string) {
@@ -129,6 +138,18 @@ export function gerarInsights(entrada: EntradaInsights): Insight[] {
       id: 'dentro-do-orcamento',
       tom: 'positivo',
       texto: `Você está dentro do seu orçamento mensal. Ainda pode gastar ${formatarCentavos(entrada.disponivelParaGastarCentavos)} este mês.`,
+    });
+  }
+
+  const impostos = entrada.impostos;
+  if (impostos && impostos.impostosCentavos > 0) {
+    const maior = impostos.maiorCategoria;
+    insights.push({
+      id: 'impostos-do-mes',
+      tom: 'neutro',
+      texto:
+        `${formatarCentavos(impostos.impostosCentavos)} dos seus gastos deste mês foram impostos (${impostos.percentualDosGastos.toLocaleString('pt-BR')}%).` +
+        (maior ? ` Onde mais pesou: ${nomeCategoria(maior.nome)}, com ${formatarCentavos(maior.impostosCentavos)}.` : ''),
     });
   }
 

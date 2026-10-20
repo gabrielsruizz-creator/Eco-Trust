@@ -19,10 +19,11 @@ import {
 import { buscarCategoria, listarCategorias } from '@/repositories/categorias-repository';
 import { listarTransacoes } from '@/repositories/transacoes-repository';
 import { perfilTributarioDaCategoria } from '@/services/categorias-service';
-import { variacaoPercentual } from '@/services/dashboard-service';
 import { obterPerfil } from '@/services/perfil-financeiro-service';
+import type { ResumoImpostosInsight } from '@/services/insights-service';
 import type { Transacao } from '@/types/financas';
 import { somarMeses } from '@/utils/datas';
+import { variacaoPercentual } from '@/utils/percentual';
 
 export type OrigemImposto = 'nota' | 'estimado';
 
@@ -264,4 +265,38 @@ export function obterImpostometro(mes: string): Impostometro {
     impostosMesAnteriorCentavos: totalDoMes(somarMeses(mes, -1), perfis),
     acumuladoAnoCentavos: acumuladoAno,
   });
+}
+
+/** Impostos de cada despesa de um mês, pelo id do lançamento (para a lista de Transações). */
+export function obterImpostosDosLancamentos(mes: string): Map<number, { centavos: number; origem: OrigemImposto }> {
+  const perfis = mapaDePerfis();
+  const resultado = new Map<number, { centavos: number; origem: OrigemImposto }>();
+  for (const t of listarTransacoes({ mes, tipo: 'despesa' })) {
+    const { total, origem } = dividirImposto(
+      t.valorCentavos,
+      perfis.get(t.categoriaId) ?? perfilTributario('geral'),
+      t.tributosCentavos,
+    );
+    resultado.set(t.id, { centavos: Math.round(total), origem });
+  }
+  return resultado;
+}
+
+/** Resumo leve para os insights do Início (sem comparar meses). */
+export function obterResumoImpostos(mes: string): ResumoImpostosInsight | null {
+  const imp = calcularImpostometro({
+    mes,
+    transacoes: listarTransacoes({ mes, tipo: 'despesa' }),
+    perfis: mapaDePerfis(),
+    rendaPerfilCentavos: null,
+    impostosMesAnteriorCentavos: 0,
+    acumuladoAnoCentavos: 0,
+  });
+  if (imp.percentualDosGastos === null) return null;
+  const maior = imp.porCategoria[0];
+  return {
+    impostosCentavos: imp.impostosCentavos,
+    percentualDosGastos: imp.percentualDosGastos,
+    maiorCategoria: maior && maior.impostosCentavos > 0 ? { nome: maior.categoria, impostosCentavos: maior.impostosCentavos } : null,
+  };
 }
