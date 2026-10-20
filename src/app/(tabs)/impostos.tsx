@@ -4,8 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { BarraProgresso } from '@/components/barra-progresso';
 import { Icone } from '@/components/icone';
-import { Botao, Cartao, IconeCirculo, LinhaLista, useDegrade } from '@/components/tela';
-import { TelaSecundaria } from '@/components/tela-secundaria';
+import { Botao, Cartao, IconeCirculo, LinhaLista, Tela, useDegrade } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
 import { TRIBUTOS } from '@/data/carga-tributaria';
@@ -21,8 +20,8 @@ function numero(n: number) {
   return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 }
 
-/** Impostômetro pessoal: quanto do que você gastou no mês foi imposto sobre consumo. */
-export default function ImpostometroScreen() {
+/** Aba Impostos: o Impostômetro pessoal (quanto do que você gastou no mês foi imposto). */
+export default function ImpostosScreen() {
   const theme = useTheme();
   const degrade = useDegrade(135);
   const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
@@ -33,7 +32,17 @@ export default function ImpostometroScreen() {
   const corTributo = (id: string) => SeriesColors[esquema][TRIBUTOS.findIndex((t) => t.id === id) % 8];
 
   return (
-    <TelaSecundaria titulo="Impostômetro">
+    <Tela
+      titulo="Impostômetro"
+      subtitulo="Quanto do seu dinheiro vai para o governo"
+      acoes={[
+        { icone: 'ajustes', rotulo: 'Ajustar tipos de consumo', aoTocar: () => router.push('/ajustar-impostos') },
+        {
+          icone: 'mais',
+          rotulo: 'Nova despesa',
+          aoTocar: () => router.push({ pathname: '/novo-lancamento', params: { tipo: 'despesa' } }),
+        },
+      ]}>
       {/* Mês */}
       <View style={styles.seletorMes}>
         <BotaoSeta icone="voltar" rotulo="Mês anterior" aoTocar={() => setMes(somarMeses(mes, -1))} />
@@ -279,7 +288,7 @@ export default function ImpostometroScreen() {
           onPress={() => router.push('/ajustar-impostos')}
         />
       </Cartao>
-    </TelaSecundaria>
+    </Tela>
   );
 }
 

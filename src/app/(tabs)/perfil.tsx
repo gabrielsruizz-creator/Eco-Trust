@@ -163,6 +163,15 @@ export default function PerfilScreen() {
         />
       </Grupo>
 
+      <Grupo titulo="Aprender">
+        <LinhaLista
+          icone="aprender"
+          titulo="EcoTrust Academy"
+          subtitulo="Cursos, glossário e fórum da comunidade"
+          aoTocar={() => router.push('/academy')}
+        />
+      </Grupo>
+
       <View style={styles.grupo}>
         <ThemedText type="smallBold" accessibilityRole="header">
           Preferências

@@ -6,7 +6,7 @@ import { BarraProgresso } from '@/components/barra-progresso';
 import { Icone, type NomeIcone } from '@/components/icone';
 import { CartaoSaude } from '@/components/saude-financeira';
 import { SeloNivel } from '@/components/selo-nivel';
-import { Cartao, IconeCirculo, Tela, useDegrade } from '@/components/tela';
+import { Cartao, IconeCirculo, LinhaLista, Tela, useDegrade } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
 import { useDadosPessoais, useDashboard, useImpostometro, useJornada, usePerfilFinanceiro } from '@/hooks/use-dados';
@@ -93,7 +93,7 @@ export default function InicioScreen() {
 
       {/* Impostômetro pessoal */}
       <Pressable
-        onPress={() => router.push('/impostometro')}
+        onPress={() => router.navigate('/impostos')}
         accessibilityRole="button"
         accessibilityLabel={`Impostômetro: ${formatarCentavos(impostos.impostosCentavos)} em impostos neste mês${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% dos seus gastos` : ''}. Ver detalhes.`}
         style={({ pressed }) => pressed && styles.pressionado}>
@@ -235,6 +235,17 @@ export default function InicioScreen() {
             );
           })
         )}
+      </Cartao>
+
+      {/* Academy (saiu da barra de abas para dar lugar aos Impostos) */}
+      <Cartao style={styles.cartaoLinha}>
+        <LinhaLista
+          icone="aprender"
+          corIcone={theme.brand}
+          titulo="EcoTrust Academy"
+          subtitulo="Aprenda finanças com cursos curtos"
+          aoTocar={() => router.push('/academy')}
+        />
       </Cartao>
     </Tela>
   );
@@ -421,6 +432,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     minHeight: 44,
+  },
+  cartaoLinha: {
+    paddingVertical: 0,
   },
   percentual: {
     width: 36,

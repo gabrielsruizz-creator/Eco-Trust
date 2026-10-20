@@ -3,7 +3,7 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ICONES } from '@/components/icone';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Abas: Início · Transações · Metas · Aprender · Perfil. */
+/** Abas: Início · Transações · Impostos · Metas · Perfil. (A Academy abre pelo Início e pelo Perfil.) */
 export default function AppTabs() {
   const theme = useTheme();
 
@@ -23,14 +23,14 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf={ICONES.transacoes.ios} md={ICONES.transacoes.android} />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="impostos">
+        <NativeTabs.Trigger.Label>Impostos</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={ICONES.impostos.ios} md={ICONES.impostos.android} />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="metas">
         <NativeTabs.Trigger.Label>Metas</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={ICONES.metas.ios} md={ICONES.metas.android} />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="aprender">
-        <NativeTabs.Trigger.Label>Aprender</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={ICONES.aprender.ios} md={ICONES.aprender.android} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="perfil">
