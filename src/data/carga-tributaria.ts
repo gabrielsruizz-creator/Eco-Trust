@@ -356,8 +356,32 @@ const PADROES_PRODUTO: [RegExp, TipoProdutoId][] = [
   [/\b(arroz|feijao|leite|ovos?|farinha|fuba|pao frances|macarrao|cafe|oleo de soja|margarina|manteiga|sal\b|acucar)/, 'basico'],
 ];
 
+/** Escolha do usuário para um produto: um tipo, ou 'categoria' para usar a média da categoria. */
+export type EscolhaProduto = TipoProdutoId | 'categoria';
+
+/** Nome do item normalizado: chave das escolhas do usuário ("Arroz  T.João" = "arroz t.joao"). */
+export function chaveNomeProduto(descricao: string) {
+  return normalizar(descricao).replace(/\s+/g, ' ');
+}
+
+/*
+ * Escolhas do usuário (gravadas no banco), que valem antes dos padrões de nome.
+ * Ficam aqui em memória para as contas continuarem síncronas; o serviço de classificação as carrega.
+ */
+let escolhasDoUsuario = new Map<string, EscolhaProduto>();
+
+export function usarEscolhasDeProduto(escolhas: Map<string, EscolhaProduto>) {
+  escolhasDoUsuario = escolhas;
+}
+
+export function escolhaDoUsuario(descricao: string): EscolhaProduto | null {
+  return escolhasDoUsuario.get(chaveNomeProduto(descricao)) ?? null;
+}
+
 /** Tipo de produto pelo nome do item na nota (null = usa o da categoria da despesa). */
 export function perfilDoProduto(descricao: string): PerfilProduto | null {
+  const escolha = escolhaDoUsuario(descricao);
+  if (escolha) return escolha === 'categoria' ? null : (TIPO_POR_ID.get(escolha) ?? null);
   const n = ` ${normalizar(descricao)} `;
   const id = PADROES_PRODUTO.find(([padrao]) => padrao.test(n))?.[1];
   return id ? TIPO_POR_ID.get(id)! : null;

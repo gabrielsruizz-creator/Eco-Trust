@@ -12,6 +12,7 @@
 
 import {
   cargaTotal,
+  escolhaDoUsuario,
   NOME_ESFERA,
   perfilDoProduto,
   perfilTributario,
@@ -19,6 +20,7 @@ import {
   type Esfera,
   type PerfilCarga,
   type PerfilTributario,
+  type TipoProdutoId,
   type Tributo,
   type TributoId,
 } from '@/data/carga-tributaria';
@@ -26,6 +28,7 @@ import { buscarCategoria, listarCategorias } from '@/repositories/categorias-rep
 import { buscarNotaDaTransacao, listarItensDoMes } from '@/repositories/notas-repository';
 import { listarTransacoes } from '@/repositories/transacoes-repository';
 import { perfilTributarioDaCategoria } from '@/services/categorias-service';
+import { carregarClassificacoes } from '@/services/classificacao-service';
 import {
   calcularImpostosFixosDoMes,
   obterImpostosFixos,
@@ -50,6 +53,9 @@ export type ImpostoDoItem = {
   carga: number;
   /** Tipo de produto reconhecido pelo nome (null = usou o da categoria) */
   tipo: string | null;
+  tipoId: TipoProdutoId | null;
+  /** O tipo veio de uma escolha do usuário (e não do palpite pelo nome) */
+  escolhaDoUsuario: boolean;
 };
 
 export type ImpostosDoLancamento = {
@@ -121,9 +127,8 @@ function umaCasa(n: number) {
 }
 
 /** Perfil de cada item: o do produto, se reconhecido pelo nome; senão o da categoria da despesa. */
-function perfilDoItem(item: ItemParaEstimar, perfilCategoria: PerfilTributario): { perfil: PerfilCarga; tipo: string | null } {
-  const produto = perfilDoProduto(item.descricao);
-  return produto ? { perfil: produto, tipo: produto.nome } : { perfil: perfilCategoria, tipo: null };
+function perfilDoItem(item: ItemParaEstimar, perfilCategoria: PerfilTributario): PerfilCarga {
+  return perfilDoProduto(item.descricao) ?? perfilCategoria;
 }
 
 /** Soma `valor × alíquota` de um perfil nas partes de cada tributo; devolve o total somado. */
@@ -152,7 +157,7 @@ function dividirImposto(
   if (tributosNota === null && somaItens > 0) {
     // Produto a produto. Se a nota teve desconto (ou o valor foi editado), ajusta na mesma proporção.
     let total = 0;
-    for (const item of itens) total += somarPartes(partes, item.valorTotalCentavos, perfilDoItem(item, perfil).perfil);
+    for (const item of itens) total += somarPartes(partes, item.valorTotalCentavos, perfilDoItem(item, perfil));
     const escala = valorCentavos / somaItens;
     partes.forEach((valor, id) => partes.set(id, valor * escala));
     return { origem: 'itens', total: total * escala, partes };
@@ -181,20 +186,28 @@ export function estimarItens(
   const soma = itens.reduce((s, i) => s + i.valorTotalCentavos, 0);
   const escala = soma > 0 ? valorPagoCentavos / soma : 1;
   return itens.map((item) => {
-    const { perfil, tipo } = perfilDoItem(item, perfilCategoria);
-    const carga = cargaTotal(perfil);
-    return { centavos: Math.round(((item.valorTotalCentavos * carga) / 100) * escala), carga, tipo };
+    const produto = perfilDoProduto(item.descricao);
+    const carga = cargaTotal(produto ?? perfilCategoria);
+    return {
+      centavos: Math.round(((item.valorTotalCentavos * carga) / 100) * escala),
+      carga,
+      tipo: produto?.nome ?? null,
+      tipoId: produto?.id ?? null,
+      escolhaDoUsuario: escolhaDoUsuario(item.descricao) !== null,
+    };
   });
 }
 
 /** Estimativa de uma compra que ainda não foi salva (para a dica do formulário). */
 export function estimarCompra(valorCentavos: number, perfil: PerfilTributario, itens: ItemParaEstimar[] = []) {
+  carregarClassificacoes();
   const { origem, total } = dividirImposto(valorCentavos, perfil, null, itens);
   return { origem, totalCentavos: Math.round(total), percentual: umaCasa((total / valorCentavos) * 100) };
 }
 
 /** Impostos de uma despesa (null para receitas). */
 export function obterImpostosDoLancamento(transacao: Transacao | null): ImpostosDoLancamento | null {
+  carregarClassificacoes();
   if (!transacao || transacao.tipo !== 'despesa') return null;
   const categoria = buscarCategoria(transacao.categoriaId);
   const perfil = perfilTributario(
@@ -409,6 +422,7 @@ export function calcularImpostometro({
 }
 
 export function obterImpostometro(mes: string): Impostometro {
+  carregarClassificacoes();
   const perfis = mapaDePerfis();
   const fixos = calcularImpostosFixosDoMes(obterImpostosFixos());
   const rendaPerfil = obterPerfil()?.rendaMensalCentavos ?? null;
@@ -436,6 +450,7 @@ export function obterImpostometro(mes: string): Impostometro {
 
 /** Impostos de cada despesa de um mês, pelo id do lançamento (para a lista de Transações). */
 export function obterImpostosDosLancamentos(mes: string): Map<number, { centavos: number; origem: OrigemImposto }> {
+  carregarClassificacoes();
   const perfis = mapaDePerfis();
   const itens = listarItensDoMes(mes);
   const resultado = new Map<number, { centavos: number; origem: OrigemImposto }>();
@@ -453,6 +468,7 @@ export function obterImpostosDosLancamentos(mes: string): Map<number, { centavos
 
 /** Resumo leve para os insights do Início (sem comparar meses). */
 export function obterResumoImpostos(mes: string): ResumoImpostosInsight | null {
+  carregarClassificacoes();
   const imp = calcularImpostometro({
     mes,
     transacoes: listarTransacoes({ mes, tipo: 'despesa' }),

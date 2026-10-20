@@ -11,12 +11,14 @@ import {
   obterImpostosDosLancamentos,
   obterResumoImpostos,
 } from '@/services/impostometro-service';
+import { classificarProduto } from '@/services/classificacao-service';
 import { salvarImpostosFixos } from '@/services/impostos-renda-service';
 
 jest.mock('@/repositories/categorias-repository', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').categoriasRepository);
 jest.mock('@/repositories/transacoes-repository', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').transacoesRepository);
 jest.mock('@/repositories/notas-repository', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').notasRepository);
 jest.mock('@/repositories/impostos-fixos-repository', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').impostosFixosRepository);
+jest.mock('@/repositories/classificacao-repository', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').classificacaoRepository);
 jest.mock('@/services/perfil-financeiro-service', () => jest.requireActual<typeof import('./banco-falso')>('./banco-falso').perfilFinanceiroService);
 
 const SUPERMERCADO = 1;
@@ -196,5 +198,28 @@ describe('Dia da Liberdade de Impostos', () => {
     ];
     const lib = obterImpostometro('2026-10').liberdade!;
     expect(lib.percentual).toBe(Math.round(((23_000 + 2_300) / (400_000 + 500_000)) * 1000) / 10);
+  });
+});
+
+describe('classificação que aprende', () => {
+  it('a escolha do usuário vale antes do palpite e para todas as notas', () => {
+    const t = despesa({ valorCentavos: 10_000, categoriaId: SUPERMERCADO, data: '2026-10-10', chaveNota: 'z'.repeat(44) });
+    banco.transacoes.push(t);
+    banco.notas.set(t.id, {
+      chave: t.chaveNota!,
+      url: null,
+      emitente: null,
+      itens: [{ descricao: 'PILHA AA DURACELL', codigo: null, quantidade: 1, unidade: null, valorUnitarioCentavos: null, valorTotalCentavos: 10_000 }],
+    });
+    expect(obterImpostosDoLancamento(t)!.porItem![0]).toMatchObject({ tipo: null, carga: 23, escolhaDoUsuario: false });
+
+    classificarProduto('Pilha  AA Duracell', 'cosmetico'); // outro jeito de escrever o mesmo nome
+    expect(obterImpostosDoLancamento(t)!.porItem![0]).toMatchObject({ tipoId: 'cosmetico', carga: 60, escolhaDoUsuario: true });
+
+    classificarProduto('PILHA AA DURACELL', 'categoria');
+    expect(obterImpostosDoLancamento(t)!.porItem![0]).toMatchObject({ tipo: null, carga: 23, escolhaDoUsuario: true });
+
+    classificarProduto('PILHA AA DURACELL', null);
+    expect(obterImpostosDoLancamento(t)!.porItem![0].escolhaDoUsuario).toBe(false);
   });
 });

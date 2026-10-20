@@ -1,15 +1,20 @@
 import { router } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
+import { Chip } from '@/components/chip';
 import { Botao, Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { cargaTotal, TIPOS_PRODUTO, type EscolhaProduto } from '@/data/carga-tributaria';
 import { useTheme } from '@/hooks/use-theme';
+import { classificarProduto } from '@/services/classificacao-service';
+import { ErroValidacao } from '@/services/erros';
 import type { ImpostoDoItem } from '@/services/impostometro-service';
 import type { ItemNota, NotaSalva } from '@/types/financas';
 import { formatarCentavos } from '@/utils/moeda';
+import { vibrarSucesso } from '@/utils/vibracao';
 
 /** Quantos itens aparecem antes do "Ver todos" */
 const ITENS_VISIVEIS = 8;
@@ -51,6 +56,7 @@ export function ItensDaNota({
 }) {
   const theme = useTheme();
   const [todos, setTodos] = useState(false);
+  const [aberto, setAberto] = useState<number | null>(null);
 
   if (!nota || nota.itens.length === 0) {
     if (!chaveNota) return null;
@@ -108,37 +114,16 @@ export function ItensDaNota({
         </View>
       )}
 
-      {visiveis.map((item, i) => {
-        const imposto = impostosPorItem?.[i];
-        return (
-          <View
-            key={i}
-            style={[styles.item, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}
-            accessible
-            accessibilityLabel={`${item.descricao}: ${quantidade(item)}, ${formatarCentavos(item.valorTotalCentavos)}${imposto ? `, cerca de ${formatarCentavos(imposto.centavos)} de impostos` : ''}`}>
-            <View style={styles.flex}>
-              <ThemedText type="small" numberOfLines={2}>
-                {item.descricao}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {quantidade(item)}
-                {item.valorUnitarioCentavos !== null && item.quantidade !== 1
-                  ? ` × ${formatarCentavos(item.valorUnitarioCentavos)}`
-                  : ''}
-                {imposto ? ` · ${imposto.carga}% de imposto${imposto.tipo ? ` (${imposto.tipo})` : ''}` : ''}
-              </ThemedText>
-            </View>
-            <View style={styles.valores}>
-              <ThemedText type="smallBold">{formatarCentavos(item.valorTotalCentavos)}</ThemedText>
-              {imposto && (
-                <ThemedText type="small" themeColor="textSecondary">
-                  ≈ {formatarCentavos(imposto.centavos)} imp.
-                </ThemedText>
-              )}
-            </View>
-          </View>
-        );
-      })}
+      {visiveis.map((item, i) => (
+        <LinhaItem
+          key={i}
+          item={item}
+          imposto={impostosPorItem?.[i] ?? null}
+          separador={i > 0}
+          aberto={aberto === i}
+          aoTocar={() => setAberto(aberto === i ? null : i)}
+        />
+      ))}
 
       {nota.itens.length > ITENS_VISIVEIS && (
         <Pressable onPress={() => setTodos(!todos)} accessibilityRole="button" hitSlop={8}>
@@ -158,6 +143,106 @@ export function ItensDaNota({
       )}
       {nota.url && <LinkSefaz url={nota.url} />}
     </Cartao>
+  );
+}
+
+/** Um produto da nota. Com estimativa por item, tocar abre a escolha do tipo do produto. */
+function LinhaItem({
+  item,
+  imposto,
+  separador,
+  aberto,
+  aoTocar,
+}: {
+  item: ItemNota;
+  imposto: ImpostoDoItem | null;
+  separador: boolean;
+  aberto: boolean;
+  aoTocar: () => void;
+}) {
+  const theme = useTheme();
+  const conteudo = (
+    <View style={styles.item}>
+      <View style={styles.flex}>
+        <ThemedText type="small" numberOfLines={2}>
+          {item.descricao}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {quantidade(item)}
+          {item.valorUnitarioCentavos !== null && item.quantidade !== 1
+            ? ` × ${formatarCentavos(item.valorUnitarioCentavos)}`
+            : ''}
+          {imposto
+            ? ` · ${imposto.carga}% de imposto (${imposto.tipo ?? 'média da categoria'}${imposto.escolhaDoUsuario ? ', sua escolha' : ''})`
+            : ''}
+        </ThemedText>
+      </View>
+      <View style={styles.valores}>
+        <ThemedText type="smallBold">{formatarCentavos(item.valorTotalCentavos)}</ThemedText>
+        {imposto && (
+          <ThemedText type="small" themeColor="textSecondary">
+            ≈ {formatarCentavos(imposto.centavos)} imp.
+          </ThemedText>
+        )}
+      </View>
+    </View>
+  );
+  const rotulo = `${item.descricao}: ${quantidade(item)}, ${formatarCentavos(item.valorTotalCentavos)}${imposto ? `, cerca de ${formatarCentavos(imposto.centavos)} de impostos, tipo ${imposto.tipo ?? 'média da categoria'}` : ''}`;
+
+  return (
+    <View style={separador && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }}>
+      {imposto ? (
+        <Pressable
+          onPress={aoTocar}
+          accessibilityRole="button"
+          accessibilityLabel={rotulo}
+          accessibilityHint="Escolher o tipo deste produto"
+          accessibilityState={{ expanded: aberto }}
+          style={({ pressed }) => pressed && styles.pressionado}>
+          {conteudo}
+        </Pressable>
+      ) : (
+        <View accessible accessibilityLabel={rotulo}>
+          {conteudo}
+        </View>
+      )}
+      {aberto && imposto && <EscolhaDeTipo descricao={item.descricao} imposto={imposto} />}
+    </View>
+  );
+}
+
+/** Chips para corrigir o tipo do produto. A escolha vale para este nome em todas as notas. */
+function EscolhaDeTipo({ descricao, imposto }: { descricao: string; imposto: ImpostoDoItem }) {
+  function escolher(escolha: EscolhaProduto | null) {
+    try {
+      classificarProduto(descricao, escolha);
+      vibrarSucesso();
+    } catch (e) {
+      Alert.alert('Não foi possível salvar', e instanceof ErroValidacao ? e.message : 'Tente novamente.');
+    }
+  }
+  return (
+    <View style={styles.escolha}>
+      <ThemedText type="small" themeColor="textSecondary">
+        Que tipo de produto é este? Sua escolha vale para todas as notas com esse nome.
+      </ThemedText>
+      <View style={styles.chips} accessibilityRole="radiogroup">
+        {TIPOS_PRODUTO.map((t) => (
+          <Chip
+            key={t.id}
+            texto={`${t.nome} · ${cargaTotal(t)}%`}
+            ativo={imposto.tipoId === t.id}
+            aoTocar={() => escolher(t.id)}
+          />
+        ))}
+        <Chip
+          texto="Média da categoria"
+          ativo={imposto.tipoId === null && imposto.escolhaDoUsuario}
+          aoTocar={() => escolher('categoria')}
+        />
+        {imposto.escolhaDoUsuario && <Chip texto="Deixar o app decidir" ativo={false} aoTocar={() => escolher(null)} />}
+      </View>
+    </View>
   );
 }
 
@@ -183,6 +268,18 @@ const styles = StyleSheet.create({
   },
   valores: {
     alignItems: 'flex-end',
+  },
+  pressionado: {
+    opacity: 0.6,
+  },
+  escolha: {
+    gap: Spacing.two,
+    paddingBottom: Spacing.three,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
   },
   resumoTipos: {
     gap: Spacing.one,

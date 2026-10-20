@@ -4,6 +4,8 @@
  * e preenche `banco` antes de cada caso.
  */
 
+import { jest } from '@jest/globals';
+
 import type { Categoria, ImpostosFixos, NotaSalva, PerfilFinanceiro, Transacao } from '@/types/financas';
 
 export const banco: {
@@ -12,7 +14,8 @@ export const banco: {
   notas: Map<number, NotaSalva>;
   fixos: ImpostosFixos | null;
   perfil: Pick<PerfilFinanceiro, 'rendaMensalCentavos'> | null;
-} = { categorias: [], transacoes: [], notas: new Map(), fixos: null, perfil: null };
+  classificacoes: Map<string, string>;
+} = { categorias: [], transacoes: [], notas: new Map(), fixos: null, perfil: null, classificacoes: new Map() };
 
 export function limparBanco() {
   banco.categorias = [];
@@ -20,6 +23,8 @@ export function limparBanco() {
   banco.notas = new Map();
   banco.fixos = null;
   banco.perfil = null;
+  banco.classificacoes = new Map();
+  jest.requireActual<typeof import('@/data/database')>('@/data/database').notificarMudanca();
 }
 
 let proximoId = 1000;
@@ -74,6 +79,18 @@ export const impostosFixosRepository = {
   },
   removerImpostosFixos: () => {
     banco.fixos = null;
+  },
+};
+
+export const classificacaoRepository = {
+  listarClassificacoes: () => new Map(banco.classificacoes),
+  gravarClassificacao: (nome: string, tipo: string) => {
+    banco.classificacoes.set(nome, tipo);
+    jest.requireActual<typeof import('@/data/database')>('@/data/database').notificarMudanca();
+  },
+  removerClassificacao: (nome: string) => {
+    banco.classificacoes.delete(nome);
+    jest.requireActual<typeof import('@/data/database')>('@/data/database').notificarMudanca();
   },
 };
 

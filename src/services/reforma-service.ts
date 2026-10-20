@@ -12,6 +12,7 @@ import { listarCategorias } from '@/repositories/categorias-repository';
 import { listarItensDoMes } from '@/repositories/notas-repository';
 import { listarTransacoes } from '@/repositories/transacoes-repository';
 import { perfilTributarioDaCategoria } from '@/services/categorias-service';
+import { carregarClassificacoes } from '@/services/classificacao-service';
 import type { ItemParaEstimar } from '@/services/impostometro-service';
 import type { Transacao } from '@/types/financas';
 
@@ -91,6 +92,7 @@ export function calcularSimulacao(
 }
 
 export function obterSimulacaoReforma(mes: string): SimulacaoReforma {
+  carregarClassificacoes();
   const perfis = new Map(listarCategorias('despesa').map((c) => [c.id, perfilTributarioDaCategoria(c)]));
   return calcularSimulacao(mes, listarTransacoes({ mes, tipo: 'despesa' }), perfis, listarItensDoMes(mes));
 }
