@@ -51,6 +51,7 @@ export const ICONES = {
   relogio: { ios: 'clock', android: 'schedule' },
   qrcode: { ios: 'qrcode.viewfinder', android: 'qr_code_scanner' },
   lanterna: { ios: 'flashlight.on.fill', android: 'flashlight_on' },
+  compartilhar: { ios: 'square.and.arrow.up', android: 'share' },
   // Categorias e metas
   alimentacao: { ios: 'fork.knife', android: 'restaurant' },
   supermercado: { ios: 'cart', android: 'shopping_cart' },

@@ -91,6 +91,15 @@ export default function ImpostosScreen() {
         )}
       </View>
 
+      {imp.cargaTotalCentavos > 0 && (
+        <Botao
+          texto="Compartilhar meu Impostômetro"
+          variante="secundario"
+          icone="compartilhar"
+          onPress={() => router.push({ pathname: '/compartilhar-impostos', params: { mes } })}
+        />
+      )}
+
       {imp.despesas === 0 && (
         <Cartao>
           <ThemedText type="small">

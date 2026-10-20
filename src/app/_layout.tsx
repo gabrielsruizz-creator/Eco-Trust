@@ -116,6 +116,7 @@ export default function RootLayout() {
           <Stack.Screen name="backup" />
           <Stack.Screen name="imposto-de-renda" />
           <Stack.Screen name="reforma-tributaria" />
+          <Stack.Screen name="compartilhar-impostos" options={{ presentation: 'modal' }} />
         </Stack.Protected>
       </Stack>
       {/* Por cima de todas as telas */}
