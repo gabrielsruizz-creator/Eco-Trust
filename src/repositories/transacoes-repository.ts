@@ -12,12 +12,13 @@ type LinhaTransacao = {
   recorrente: number;
   tributos_centavos: number | null;
   chave_nota: string | null;
+  dedutivel_ir: number | null;
   criado_em: string;
 };
 
 const SELECT_TRANSACAO = `
   SELECT t.id, t.tipo, t.valor_centavos, t.descricao, t.categoria_id, c.nome AS categoria_nome,
-         t.data, t.recorrente, t.tributos_centavos, t.chave_nota, t.criado_em
+         t.data, t.recorrente, t.tributos_centavos, t.chave_nota, t.dedutivel_ir, t.criado_em
   FROM transacoes t
   JOIN categorias c ON c.id = t.categoria_id`;
 
@@ -33,6 +34,7 @@ function paraTransacao(l: LinhaTransacao): Transacao {
     recorrente: l.recorrente === 1,
     tributosCentavos: l.tributos_centavos,
     chaveNota: l.chave_nota,
+    dedutivelIr: l.dedutivel_ir === null ? null : l.dedutivel_ir === 1,
     criadoEm: l.criado_em,
   };
 }
@@ -140,6 +142,24 @@ export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
   );
   notificarMudanca();
   return resultado.changes > 0;
+}
+
+/** Lançamentos de um período (AAAA-MM-DD, inclusive), do mais antigo ao mais novo. */
+export function listarTransacoesEntre(inicio: string, fim: string, tipo: TipoTransacao): Transacao[] {
+  return getBanco()
+    .getAllSync<LinhaTransacao>(
+      `${SELECT_TRANSACAO} WHERE t.data BETWEEN ? AND ? AND t.tipo = ? ORDER BY t.data, t.id`,
+      inicio,
+      fim,
+      tipo,
+    )
+    .map(paraTransacao);
+}
+
+/** Marca (ou desmarca, ou volta ao automático com null) uma despesa como dedutível no IR. */
+export function definirDedutivelIr(id: number, dedutivel: boolean | null) {
+  getBanco().runSync('UPDATE transacoes SET dedutivel_ir = ? WHERE id = ?', dedutivel === null ? null : dedutivel ? 1 : 0, id);
+  notificarMudanca();
 }
 
 export function removerTransacao(id: number) {

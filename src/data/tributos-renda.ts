@@ -57,3 +57,23 @@ export function calcularIRRF(brutoCentavos: number, inssCentavos: number, depend
 
   return Math.round(Math.max(0, imposto - reducao));
 }
+
+/*
+ * Declaração anual do IR (pessoa física), valores em centavos por ano.
+ * Saúde não tem limite; educação tem limite por pessoa (titular e cada dependente).
+ */
+export const LIMITE_EDUCACAO_POR_PESSOA = 356_150;
+export const DEDUCAO_DEPENDENTE_ANUAL = 227_508;
+/** Desconto simplificado: 20% dos rendimentos tributáveis, limitado a este valor */
+export const PERCENTUAL_SIMPLIFICADO = 20;
+export const LIMITE_SIMPLIFICADO = 1_675_434;
+
+/**
+ * Alíquota "da última faixa" do salário (quanto cada real a menos na base economiza de IR).
+ * Zero para quem fica isento pela redução de 2026; aproximada na faixa da redução parcial.
+ */
+export function aliquotaMarginalIR(brutoCentavos: number, inssCentavos: number, dependentes = 0) {
+  if (calcularIRRF(brutoCentavos, inssCentavos, dependentes) === 0) return 0;
+  const base = Math.max(0, brutoCentavos - Math.max(inssCentavos + dependentes * DEDUCAO_POR_DEPENDENTE, DESCONTO_SIMPLIFICADO));
+  return FAIXAS_IRRF.find(([limite]) => base <= limite)![1];
+}

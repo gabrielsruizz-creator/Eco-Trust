@@ -114,6 +114,7 @@ export default function RootLayout() {
           <Stack.Screen name="refazer-conversa" options={{ presentation: 'modal' }} />
           <Stack.Screen name="conquistas" />
           <Stack.Screen name="backup" />
+          <Stack.Screen name="imposto-de-renda" />
         </Stack.Protected>
       </Stack>
       {/* Por cima de todas as telas */}

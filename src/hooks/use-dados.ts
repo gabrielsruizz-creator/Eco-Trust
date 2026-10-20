@@ -27,6 +27,7 @@ import {
   obterImpostosDosLancamentos,
 } from '@/services/impostometro-service';
 import { obterImpostosFixos } from '@/services/impostos-renda-service';
+import { obterDeducoesIR } from '@/services/ir-service';
 import { obterNotaDoLancamento } from '@/services/nota-fiscal-service';
 import { montarHistorico } from '@/services/historico-service';
 import { obterMeta, obterMetas } from '@/services/metas-service';
@@ -89,6 +90,12 @@ export function useNotaDoLancamento(id: number) {
 export function useUltimoBackup() {
   const versao = useVersaoDados();
   return useMemo(() => obterUltimoBackup(), [versao]);
+}
+
+/** Despesas de saúde e educação do ano para a declaração do IR. */
+export function useDeducoesIR(ano: number) {
+  const versao = useVersaoDados();
+  return useMemo(() => obterDeducoesIR(ano), [versao, ano]);
 }
 
 export function useImpostometro(mes: string) {

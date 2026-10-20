@@ -302,6 +302,20 @@ export default function ImpostosScreen() {
         </View>
       </Cartao>
 
+      {/* Ferramentas */}
+      <ThemedText type="smallBold" accessibilityRole="header">
+        Ferramentas
+      </ThemedText>
+      <Cartao style={styles.cartaoLista}>
+        <LinhaLista
+          icone="recibo"
+          corIcone={theme.brand}
+          titulo="Imposto de Renda"
+          subtitulo="Saúde e educação que entram na declaração"
+          aoTocar={() => router.push('/imposto-de-renda')}
+        />
+      </Cartao>
+
       {/* Como calculamos */}
       <Cartao>
         <ThemedText type="smallBold">Como o EcoTrust calcula</ThemedText>

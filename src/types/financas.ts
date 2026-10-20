@@ -31,6 +31,8 @@ export type Transacao = {
   tributosCentavos: number | null;
   /** Chave de acesso da NFC-e, quando a despesa veio do QR Code da nota */
   chaveNota: string | null;
+  /** Entra nas deduções do IR (saúde/educação). null = o app decide pelo tipo e pela descrição */
+  dedutivelIr?: boolean | null;
   /** Momento em que foi registrado (ISO), quando disponível */
   criadoEm?: string;
 };

@@ -499,6 +499,23 @@ function v14ItensDaNota(db: SQLiteDatabase) {
   `);
 }
 
+/**
+ * - transacoes.dedutivel_ir: despesa de saúde/educação marcada para a declaração do IR (NULL = palpite do app);
+ * - notas_fiscais.cpf_na_nota: se a nota foi emitida com o CPF do consumidor (programas de devolução);
+ * - classificacao_produtos: tipo de produto escolhido pelo usuário para um nome de item da nota.
+ */
+function v15DeducoesCpfEClassificacao(db: SQLiteDatabase) {
+  db.execSync(`
+    ALTER TABLE transacoes ADD COLUMN dedutivel_ir INTEGER;
+    ALTER TABLE notas_fiscais ADD COLUMN cpf_na_nota INTEGER;
+    CREATE TABLE classificacao_produtos (
+      nome TEXT PRIMARY KEY,
+      tipo TEXT NOT NULL,
+      atualizado_em TEXT NOT NULL
+    );
+  `);
+}
+
 const MIGRACOES: Migracao[] = [
   v1CriarTabelas,
   v2ImportarDadosAntigos,
@@ -514,6 +531,7 @@ const MIGRACOES: Migracao[] = [
   v12Impostometro,
   v13ImpostosFixosENotas,
   v14ItensDaNota,
+  v15DeducoesCpfEClassificacao,
 ];
 
 export function executarMigracoes(db: SQLiteDatabase) {
