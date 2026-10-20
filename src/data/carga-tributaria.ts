@@ -97,12 +97,16 @@ export type PerfilTributarioId =
   | 'geral'
   | 'isento';
 
-export type PerfilTributario = {
-  id: PerfilTributarioId;
+/** Carga de impostos de um tipo de consumo ou de produto. */
+export type PerfilCarga = {
   nome: string;
-  exemplos: string;
   /** Percentual do preço final que vai para cada tributo (ex.: 12 = 12%). */
   aliquotas: Partial<Record<TributoId, number>>;
+};
+
+export type PerfilTributario = PerfilCarga & {
+  id: PerfilTributarioId;
+  exemplos: string;
 };
 
 export const PERFIS_TRIBUTARIOS: PerfilTributario[] = [
@@ -227,7 +231,7 @@ export function perfilTributarioValido(id: string | null | undefined): id is Per
 }
 
 /** Carga total do perfil, em % do preço final. */
-export function cargaTotal(perfil: PerfilTributario) {
+export function cargaTotal(perfil: PerfilCarga) {
   return Object.values(perfil.aliquotas).reduce((soma, p) => soma + (p ?? 0), 0);
 }
 
@@ -283,4 +287,54 @@ export function perfilPorNome(nome: string): PerfilTributarioId {
   if (padrao) return padrao;
   const n = normalizar(nome);
   return PALAVRAS.find(([padrao]) => padrao.test(n))?.[1] ?? 'geral';
+}
+
+/**
+ * Produtos com carga bem diferente da média da categoria, reconhecidos pelo nome do item na nota
+ * fiscal (que costuma vir abreviado: "CERV HEINEKEN LN", "REFRIG COCA 2L", "DET YPE").
+ * Usados quando a nota não informa os tributos e o app tem a lista de itens. A ordem importa:
+ * o primeiro padrão que combinar vale ("LEITE CONDENSADO" é doce, não básico).
+ */
+const PRODUTOS: [RegExp, PerfilCarga][] = [
+  [/\b(cigarro|cig |tabaco|fumo)/, { nome: 'cigarro', aliquotas: { icms: 25, pisCofins: 10, ipi: 40, embutidos: 5 } }],
+  [
+    /\b(vodka|vodca|whisky|uisque|cachaca|pinga|gin|rum|tequila|licor|conhaque|aguardente)\b/,
+    { nome: 'bebida destilada', aliquotas: { icms: 25, pisCofins: 12, ipi: 25, embutidos: 8 } },
+  ],
+  [/\b(cerv|cerveja|chopp?|vinho|espumante|sidra)/, { nome: 'bebida alcoólica', aliquotas: { icms: 25, pisCofins: 10, ipi: 15, embutidos: 5 } }],
+  [/\b(perfume|colonia|batom|maquiagem|esmalte|base liq|rimel)/, { nome: 'cosmético', aliquotas: { icms: 25, pisCofins: 12, ipi: 15, embutidos: 8 } }],
+  [
+    /\b(refri|refrig|refrigerante|guarana|coca\b|pepsi|fanta|sprite|energetico|isotonico|suco|nectar|cha pronto)/,
+    { nome: 'refrigerante e suco', aliquotas: { icms: 20, pisCofins: 11, ipi: 4, embutidos: 7 } },
+  ],
+  [
+    /\b(leite cond|creme de leite|chocolate|choc\b|achoc|biscoito|bisc\b|bolacha|wafer|sorvete|bala\b|chiclete|bombom|salgadinho|doce\b)/,
+    { nome: 'doces e guloseimas', aliquotas: { icms: 18, pisCofins: 9, ipi: 5, embutidos: 6 } },
+  ],
+  [
+    /\b(shampoo|xampu|condicionador|sabonete|sab liq|creme dental|cr dental|pasta de dente|desodorante|desod|papel hig|pap hig|absorvente|fralda|escova dent|fio dental)/,
+    { nome: 'higiene pessoal', aliquotas: { icms: 18, pisCofins: 10, ipi: 4, embutidos: 6 } },
+  ],
+  [
+    /\b(detergente|det\b|sabao|sab po|amaciante|amac\b|desinfetante|agua sanit|alvejante|limpador|multiuso|esponja|lustra|inseticida)/,
+    { nome: 'limpeza', aliquotas: { icms: 18, pisCofins: 10, ipi: 5, embutidos: 7 } },
+  ],
+  [
+    /\b(carne|bife|patinho|acem|alcatra|picanha|costela|frango|file|peito|coxa|sobrecoxa|linguica|lingui|peixe|tilapia|sardinha|porco|lombo|pernil|moida)/,
+    { nome: 'carnes', aliquotas: { icms: 12, pisCofins: 3, embutidos: 8 } },
+  ],
+  [
+    /\b(banana|maca|laranja|limao|mamao|melancia|abacaxi|uva|manga|tomate|batata|cebola|alho|cenoura|alface|couve|abobrinha|pepino|pimentao|chuchu|mandioca|aipim|beterraba|repolho|brocolis|hortifruti|verdura|legume|fruta)\b/,
+    { nome: 'frutas, verduras e legumes', aliquotas: { icms: 3, embutidos: 9 } },
+  ],
+  [
+    /\b(arroz|feijao|leite|ovos?|farinha|fuba|pao frances|macarrao|cafe|oleo de soja|margarina|manteiga|sal\b|acucar)/,
+    { nome: 'alimento básico', aliquotas: { icms: 8, pisCofins: 1, embutidos: 7 } },
+  ],
+];
+
+/** Tipo de produto pelo nome do item na nota (null = usa o da categoria da despesa). */
+export function perfilDoProduto(descricao: string): PerfilCarga | null {
+  const n = ` ${normalizar(descricao)} `;
+  return PRODUTOS.find(([padrao]) => padrao.test(n))?.[1] ?? null;
 }

@@ -26,6 +26,7 @@ import { cargaTotal, perfilTributario } from '@/data/carga-tributaria';
 import { useCategorias } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
 import { perfilTributarioDaCategoria } from '@/services/categorias-service';
+import { estimarCompra, type ItemParaEstimar } from '@/services/impostometro-service';
 import { ErroValidacao } from '@/services/erros';
 import type { NovaTransacao, TipoTransacao, Transacao } from '@/types/financas';
 import { hoje, ontem } from '@/utils/datas';
@@ -42,6 +43,8 @@ export type SugestaoLancamento = Partial<
   urlNota?: string | null;
   /** Ex.: "NFC-e nº 12345 · SP" */
   resumoNota?: string;
+  /** Produtos da nota: sem os tributos informados, a estimativa é feita item a item */
+  itensNota?: ItemParaEstimar[];
 };
 
 type Props = {
@@ -97,9 +100,15 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
   }
   const perfil = categoria ? perfilTributario(perfilTributarioDaCategoria(categoria)) : null;
   const cargaEstimada = perfil ? cargaTotal(perfil) : null;
-  let dicaTributos = 'Procure "Valor aprox. dos tributos" no fim do cupom fiscal. ';
+  const itensNota = sugestao?.itensNota ?? [];
+  let dicaTributos = sugestao?.chaveNota
+    ? 'A nota não informou os tributos. '
+    : 'Procure "Valor aprox. dos tributos" no fim do cupom fiscal. ';
   if (informouTributos) dicaTributos = 'O seu Impostômetro vai usar o valor da nota.';
-  else if (!perfil || cargaEstimada === null) dicaTributos += 'Sem ele, o EcoTrust estima pelo tipo da categoria.';
+  else if (perfil && valorCentavos !== null && itensNota.length > 0) {
+    const estimativa = estimarCompra(valorCentavos, perfil, itensNota);
+    dicaTributos += `Estimativa do EcoTrust pelos ${itensNota.length} produtos: cerca de ${formatarCentavos(estimativa.totalCentavos)} (${estimativa.percentual.toLocaleString('pt-BR')}%).`;
+  } else if (!perfil || cargaEstimada === null) dicaTributos += 'Sem ele, o EcoTrust estima pelo tipo da categoria.';
   else if (cargaEstimada === 0) dicaTributos += 'Esta categoria está marcada como sem imposto sobre consumo.';
   else {
     const estimativa = valorCentavos !== null ? `: ${formatarCentavos(Math.round((valorCentavos * cargaEstimada) / 100))}` : '';

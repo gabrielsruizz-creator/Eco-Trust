@@ -7,6 +7,7 @@ import { Botao, Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { ImpostoDoItem } from '@/services/impostometro-service';
 import type { ItemNota, NotaSalva } from '@/types/financas';
 import { formatarCentavos } from '@/utils/moeda';
 
@@ -26,10 +27,13 @@ export function ItensDaNota({
   nota,
   chaveNota,
   valorPagoCentavos,
+  impostosPorItem,
 }: {
   nota: NotaSalva | null;
   chaveNota: string | null;
   valorPagoCentavos: number;
+  /** Imposto estimado de cada item (quando a nota não informou os tributos) */
+  impostosPorItem: ImpostoDoItem[] | null;
 }) {
   const theme = useTheme();
   const [todos, setTodos] = useState(false);
@@ -69,26 +73,37 @@ export function ItensDaNota({
         </ThemedText>
       )}
 
-      {visiveis.map((item, i) => (
-        <View
-          key={i}
-          style={[styles.item, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}
-          accessible
-          accessibilityLabel={`${item.descricao}: ${quantidade(item)}, ${formatarCentavos(item.valorTotalCentavos)}`}>
-          <View style={styles.flex}>
-            <ThemedText type="small" numberOfLines={2}>
-              {item.descricao}
-            </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {quantidade(item)}
-              {item.valorUnitarioCentavos !== null && item.quantidade !== 1
-                ? ` × ${formatarCentavos(item.valorUnitarioCentavos)}`
-                : ''}
-            </ThemedText>
+      {visiveis.map((item, i) => {
+        const imposto = impostosPorItem?.[i];
+        return (
+          <View
+            key={i}
+            style={[styles.item, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}
+            accessible
+            accessibilityLabel={`${item.descricao}: ${quantidade(item)}, ${formatarCentavos(item.valorTotalCentavos)}${imposto ? `, cerca de ${formatarCentavos(imposto.centavos)} de impostos` : ''}`}>
+            <View style={styles.flex}>
+              <ThemedText type="small" numberOfLines={2}>
+                {item.descricao}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {quantidade(item)}
+                {item.valorUnitarioCentavos !== null && item.quantidade !== 1
+                  ? ` × ${formatarCentavos(item.valorUnitarioCentavos)}`
+                  : ''}
+                {imposto ? ` · ${imposto.carga}% de imposto${imposto.tipo ? ` (${imposto.tipo})` : ''}` : ''}
+              </ThemedText>
+            </View>
+            <View style={styles.valores}>
+              <ThemedText type="smallBold">{formatarCentavos(item.valorTotalCentavos)}</ThemedText>
+              {imposto && (
+                <ThemedText type="small" themeColor="textSecondary">
+                  ≈ {formatarCentavos(imposto.centavos)} imp.
+                </ThemedText>
+              )}
+            </View>
           </View>
-          <ThemedText type="smallBold">{formatarCentavos(item.valorTotalCentavos)}</ThemedText>
-        </View>
-      ))}
+        );
+      })}
 
       {nota.itens.length > ITENS_VISIVEIS && (
         <Pressable onPress={() => setTodos(!todos)} accessibilityRole="button" hitSlop={8}>
@@ -130,6 +145,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+  },
+  valores: {
+    alignItems: 'flex-end',
   },
   item: {
     flexDirection: 'row',

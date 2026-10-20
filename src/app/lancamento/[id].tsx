@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useImpostosDoLancamento, useNotaDoLancamento, useTransacao } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
+import type { ImpostosDoLancamento } from '@/services/impostometro-service';
 import { excluirTransacao } from '@/services/transacoes-service';
 import { formatarDataPorExtenso } from '@/utils/datas';
 import { formatarCentavos } from '@/utils/moeda';
@@ -101,14 +102,14 @@ export default function DetalheLancamentoScreen() {
                   <View
                     style={styles.linha}
                     accessible
-                    accessibilityLabel={`Impostos nesta despesa: ${formatarCentavos(impostos.totalCentavos)}, ${impostos.percentual}% do valor, ${impostos.origem === 'nota' ? 'valor da nota fiscal' : 'estimativa'}`}>
-                    <ThemedText type="smallBold">Impostos nesta despesa</ThemedText>
+                    accessibilityLabel={`Impostos nesta despesa: ${formatarCentavos(impostos.totalCentavos)}, ${impostos.percentual}% do valor, ${impostos.origem === 'nota' ? 'valor da nota fiscal' : 'estimativa do EcoTrust'}`}>
+                    <ThemedText type="smallBold">
+                      {impostos.origem === 'nota' ? 'Impostos nesta despesa' : 'Impostos estimados'}
+                    </ThemedText>
                     <ThemedText type="smallBold">{formatarCentavos(impostos.totalCentavos)}</ThemedText>
                   </View>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {impostos.origem === 'nota'
-                      ? `Valor informado na nota fiscal: ${impostos.percentual.toLocaleString('pt-BR')}% do que você pagou.`
-                      : `Estimativa de ${impostos.percentual.toLocaleString('pt-BR')}% para ${impostos.perfil.nome.toLocaleLowerCase('pt-BR')}. Para o valor exato, toque em Editar e informe os tributos da nota fiscal.`}
+                    {descreverImpostos(impostos)}
                   </ThemedText>
                   {impostos.porTributo.map(({ tributo, centavos }) => (
                     <Linha key={tributo.id} rotulo={tributo.sigla} valor={formatarCentavos(centavos)} />
@@ -116,7 +117,12 @@ export default function DetalheLancamentoScreen() {
                 </Cartao>
               )}
 
-              <ItensDaNota nota={nota} chaveNota={transacao.chaveNota} valorPagoCentavos={transacao.valorCentavos} />
+              <ItensDaNota
+                nota={nota}
+                chaveNota={transacao.chaveNota}
+                valorPagoCentavos={transacao.valorCentavos}
+                impostosPorItem={impostos?.porItem ?? null}
+              />
 
               {transacao.recorrente && (
                 <View style={[styles.aviso, { backgroundColor: theme.accentSoft }]}>
@@ -145,6 +151,19 @@ export default function DetalheLancamentoScreen() {
       </SafeAreaView>
     </ThemedView>
   );
+}
+
+/** De onde veio o valor dos impostos, em linguagem simples. */
+function descreverImpostos(i: ImpostosDoLancamento) {
+  const pct = `${i.percentual.toLocaleString('pt-BR')}%`;
+  if (i.origem === 'nota') return `Valor informado na nota fiscal: ${pct} do que você pagou.`;
+  const semTributos = i.notaSemTributos
+    ? 'Esta nota não informou os tributos, como manda a Lei 12.741/2012. '
+    : '';
+  if (i.origem === 'itens') {
+    return `${semTributos}Estimativa do EcoTrust produto a produto: cerca de ${pct} do que você pagou. Veja o imposto de cada item abaixo.`;
+  }
+  return `${semTributos}Estimativa do EcoTrust de ${pct} para ${i.perfil.nome.toLocaleLowerCase('pt-BR')}. Se a nota trouxer o valor dos tributos, toque em Editar e informe para ficar exato.`;
 }
 
 function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {

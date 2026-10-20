@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 
 import { FormularioLancamento, type SugestaoLancamento } from '@/components/formulario-lancamento';
-import { anexarNotaAoLancamento, retirarNotaPendente } from '@/services/nota-fiscal-service';
+import { anexarNotaAoLancamento, retirarNotaPendente, verNotaPendente } from '@/services/nota-fiscal-service';
 import { adicionarTransacao } from '@/services/transacoes-service';
 import type { NovaTransacao } from '@/types/financas';
 import { dataValida } from '@/utils/datas';
@@ -44,6 +44,7 @@ export default function NovoLancamentoScreen() {
           data: p.data && dataValida(p.data) ? p.data : undefined,
           descricao: p.descricao,
           categoriaId: inteiro(p.categoria),
+          itensNota: verNotaPendente(p.chave)?.itens ?? [],
         }
       : undefined;
 

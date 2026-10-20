@@ -289,6 +289,11 @@ export function guardarNotaPendente(nota: DadosNota) {
   notasPendentes.set(nota.chave.chave, nota);
 }
 
+/** Consulta a nota pendente sem retirá-la (o formulário usa os itens para estimar os impostos). */
+export function verNotaPendente(chave: string): DadosNota | null {
+  return notasPendentes.get(chave) ?? null;
+}
+
 export function retirarNotaPendente(chave: string): DadosNota | null {
   const nota = notasPendentes.get(chave) ?? null;
   notasPendentes.delete(chave);

@@ -307,10 +307,13 @@ export default function ImpostosScreen() {
         <ThemedText type="smallBold">Como o EcoTrust calcula</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           {imp.despesas > 0
-            ? `${imp.despesasComNota} de ${imp.despesas} ${imp.despesas === 1 ? 'despesa usa' : 'despesas usam'} o valor da nota fiscal. `
+            ? `${imp.despesasComNota} de ${imp.despesas} ${imp.despesas === 1 ? 'despesa usa' : 'despesas usam'} o valor da nota fiscal` +
+              (imp.despesasPorItens > 0 ? ` e ${imp.despesasPorItens} ${imp.despesasPorItens === 1 ? 'é estimada' : 'são estimadas'} produto a produto` : '') +
+              '. '
             : ''}
-          Quando você não informa o “Valor aprox. dos tributos” da nota, estimamos pela carga média do
-          tipo de consumo de cada categoria. O valor real varia conforme o produto e o estado.
+          Sem o “Valor aprox. dos tributos” da nota, estimamos pelos produtos comprados (quando a nota
+          foi lida pelo QR Code) ou pela carga média do tipo de consumo da categoria. O valor real
+          varia conforme o produto e o estado.
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           Reforma tributária: a partir de 2027 o PIS/Cofins vira CBS e, até 2033, ICMS e ISS viram

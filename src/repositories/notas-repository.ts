@@ -66,3 +66,22 @@ export function gravarNotaDaTransacao(transacaoId: number, nota: NotaSalva) {
   });
   notificarMudanca();
 }
+
+/** Itens das notas das despesas de um mês, por lançamento (para estimar os impostos produto a produto). */
+export function listarItensDoMes(mes: string): Map<number, { descricao: string; valorTotalCentavos: number }[]> {
+  const linhas = getBanco().getAllSync<{ transacao_id: number; descricao: string; valor_total_centavos: number }>(
+    `SELECT i.transacao_id, i.descricao, i.valor_total_centavos
+     FROM itens_nota i JOIN transacoes t ON t.id = i.transacao_id
+     WHERE t.data BETWEEN ? AND ?
+     ORDER BY i.transacao_id, i.ordem`,
+    `${mes}-01`,
+    `${mes}-31`,
+  );
+  const porLancamento = new Map<number, { descricao: string; valorTotalCentavos: number }[]>();
+  for (const l of linhas) {
+    const itens = porLancamento.get(l.transacao_id) ?? [];
+    itens.push({ descricao: l.descricao, valorTotalCentavos: l.valor_total_centavos });
+    porLancamento.set(l.transacao_id, itens);
+  }
+  return porLancamento;
+}
