@@ -15,6 +15,12 @@ import { formatarDataCurta, mesAtual, nomeDoMes, nomeDoMesTitulo, somarMeses } f
 import { formatarCentavos } from '@/utils/moeda';
 import { visualCategoria } from '@/utils/visual';
 
+/** "2026-03-12" → "12 de março" */
+function diaEMes(data: string) {
+  const [ano, mes, dia] = data.split('-').map(Number);
+  return new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+}
+
 /** Formata "12.5" como "12,5". */
 function numero(n: number) {
   return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
@@ -289,17 +295,35 @@ export default function ImpostosScreen() {
         </>
       )}
 
-      {/* Ano */}
-      <Cartao style={styles.linhaCartao}>
-        <IconeCirculo icone="calendario" cor={theme.brand} tamanho={36} />
-        <View style={styles.flex}>
-          <ThemedText type="small" themeColor="textSecondary">
-            Em {mes.slice(0, 4)}, até {nomeMes}
-          </ThemedText>
-          <ThemedText type="smallBold">
-            {formatarCentavos(imp.acumuladoAnoCentavos)} em impostos{imp.fixos ? '' : ' sobre consumo'}
-          </ThemedText>
+      {/* Ano e Dia da Liberdade de Impostos */}
+      <Cartao>
+        <View style={styles.linhaCartao}>
+          <IconeCirculo icone="calendario" cor={theme.brand} tamanho={36} />
+          <View style={styles.flex}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Em {mes.slice(0, 4)}, até {nomeMes}
+            </ThemedText>
+            <ThemedText type="smallBold">
+              {formatarCentavos(imp.acumuladoAnoCentavos)} em impostos{imp.fixos ? '' : ' sobre consumo'}
+            </ThemedText>
+          </View>
         </View>
+        {imp.liberdade && (
+          <View
+            style={[styles.liberdade, { backgroundColor: theme.accentSoft }]}
+            accessible
+            accessibilityLabel={`Seu Dia da Liberdade de Impostos: ${diaEMes(imp.liberdade.data)}. ${numero(imp.liberdade.percentual)}% da sua renda do ano foi para impostos.`}>
+            <ThemedText type="small" style={{ color: theme.accentText }}>
+              Seu Dia da Liberdade de Impostos
+            </ThemedText>
+            <ThemedText style={styles.valorGrande}>{diaEMes(imp.liberdade.data)}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {numero(imp.liberdade.percentual)}% da sua renda deste ano foi para impostos. É como se você
+              tivesse trabalhado de 1º de janeiro até {diaEMes(imp.liberdade.data)} ({imp.liberdade.dias}{' '}
+              {imp.liberdade.dias === 1 ? 'dia' : 'dias'}) só para o governo.
+            </ThemedText>
+          </View>
+        )}
       </Cartao>
 
       {/* Ferramentas */}
@@ -469,6 +493,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
+  },
+  liberdade: {
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+    gap: Spacing.one,
   },
   valorGrande: {
     fontSize: 24,

@@ -34,7 +34,7 @@ import {
 import { obterPerfil } from '@/services/perfil-financeiro-service';
 import type { ResumoImpostosInsight } from '@/services/insights-service';
 import type { ItemNota, Transacao } from '@/types/financas';
-import { mesAtual, somarMeses } from '@/utils/datas';
+import { mesAtual, paraDataLocal, somarMeses } from '@/utils/datas';
 import { variacaoPercentual } from '@/utils/percentual';
 
 /** nota = tributos informados na nota; itens = estimado produto a produto; estimado = pela categoria */
@@ -110,6 +110,8 @@ export type Impostometro = {
   variacao: number | null;
   /** De janeiro até este mês */
   acumuladoAnoCentavos: number;
+  /** Dia da Liberdade de Impostos com a carga e a renda do ano até este mês. null sem renda */
+  liberdade: { percentual: number; dias: number; data: string } | null;
 };
 
 const MAX_LANCAMENTOS = 5;
@@ -234,17 +236,46 @@ function fixosDoMes(mes: string, transacoes: Transacao[], fixos: ImpostosFixosMe
   return transacoes.length > 0 || mes === mesAtual() ? fixos : null;
 }
 
-/** Só a carga total de um mês (para comparações e acumulado do ano). */
-function totalDoMes(mes: string, perfis: Map<number, PerfilTributario>, fixos: ImpostosFixosMes | null) {
+/**
+ * Renda antes dos descontos: receitas do mês (ou, sem elas, a renda do perfil) mais o INSS e o IR
+ * descontados no holerite, que não aparecem nas receitas.
+ */
+function rendaBrutaDoMes(receitas: number, rendaPerfil: number | null, fixos: ImpostosFixosMes | null) {
+  const base = receitas > 0 ? receitas : rendaPerfil && rendaPerfil > 0 ? rendaPerfil : null;
+  return base !== null && fixos?.descontadosNaFonte ? base + fixos.inssCentavos + fixos.irCentavos : base;
+}
+
+/** Carga total e renda de um mês (para comparações e para o ano). Meses sem uso do app não contam. */
+function totalDoMes(
+  mes: string,
+  perfis: Map<number, PerfilTributario>,
+  fixos: ImpostosFixosMes | null,
+  rendaPerfil: number | null,
+) {
   const transacoes = listarTransacoes({ mes });
   const itens = listarItensDoMes(mes);
-  let total = fixosDoMes(mes, transacoes, fixos)?.totalCentavos ?? 0;
+  const fixosMes = fixosDoMes(mes, transacoes, fixos);
+  let carga = fixosMes?.totalCentavos ?? 0;
+  let receitas = 0;
   for (const t of transacoes) {
-    if (t.tipo !== 'despesa') continue;
+    if (t.tipo === 'receita') {
+      receitas += t.valorCentavos;
+      continue;
+    }
     const perfil = perfis.get(t.categoriaId) ?? perfilTributario('geral');
-    total += dividirImposto(t.valorCentavos, perfil, t.tributosCentavos, itens.get(t.id)).total;
+    carga += dividirImposto(t.valorCentavos, perfil, t.tributosCentavos, itens.get(t.id)).total;
   }
-  return total;
+  const ativo = transacoes.length > 0 || mes === mesAtual();
+  return { carga, renda: ativo ? (rendaBrutaDoMes(receitas, rendaPerfil, fixosMes) ?? 0) : 0 };
+}
+
+/** "Dia da Liberdade de Impostos": até que dia do ano a renda foi só para pagar impostos. */
+export function calcularDiaDaLiberdade(ano: number, cargaAno: number, rendaAno: number) {
+  if (rendaAno <= 0 || cargaAno <= 0) return null;
+  const diasNoAno = new Date(ano, 1, 29).getMonth() === 1 ? 366 : 365;
+  const percentual = Math.min(1, cargaAno / rendaAno);
+  const dias = Math.round(percentual * diasNoAno);
+  return { percentual: umaCasa(percentual * 100), dias, data: paraDataLocal(new Date(ano, 0, 1 + dias)) };
 }
 
 /** Cálculo puro do impostômetro de um mês, a partir das transações dele. */
@@ -257,6 +288,7 @@ export function calcularImpostometro({
   itens = new Map(),
   impostosMesAnteriorCentavos,
   acumuladoAnoCentavos,
+  rendaAnoCentavos = 0,
 }: {
   mes: string;
   transacoes: Transacao[];
@@ -268,6 +300,8 @@ export function calcularImpostometro({
   itens?: ItensPorLancamento;
   impostosMesAnteriorCentavos: number;
   acumuladoAnoCentavos: number;
+  /** Renda bruta de janeiro até este mês */
+  rendaAnoCentavos?: number;
 }): Impostometro {
   let gastos = 0;
   let receitas = 0;
@@ -312,10 +346,7 @@ export function calcularImpostometro({
 
   const [ano, numeroMes] = mes.split('-').map(Number);
   const diasNoMes = new Date(ano, numeroMes, 0).getDate();
-  const rendaBase = receitas > 0 ? receitas : rendaPerfilCentavos && rendaPerfilCentavos > 0 ? rendaPerfilCentavos : null;
-  // O que entra na conta já vem sem o INSS e o IR do holerite: somamos de volta para ter a renda bruta.
-  const renda =
-    rendaBase !== null && fixos?.descontadosNaFonte ? rendaBase + fixos.inssCentavos + fixos.irCentavos : rendaBase;
+  const renda = rendaBrutaDoMes(receitas, rendaPerfilCentavos, fixos);
   const impostosCentavos = Math.round(impostos);
   const carga = impostos + (fixos?.totalCentavos ?? 0);
   const percentual = (parte: number, todo: number) => (todo > 0 ? umaCasa((parte / todo) * 100) : 0);
@@ -373,15 +404,20 @@ export function calcularImpostometro({
     impostosMesAnteriorCentavos: Math.round(impostosMesAnteriorCentavos),
     variacao: variacaoPercentual(Math.round(carga), Math.round(impostosMesAnteriorCentavos)),
     acumuladoAnoCentavos: Math.round(acumuladoAnoCentavos),
+    liberdade: calcularDiaDaLiberdade(ano, acumuladoAnoCentavos, rendaAnoCentavos),
   };
 }
 
 export function obterImpostometro(mes: string): Impostometro {
   const perfis = mapaDePerfis();
   const fixos = calcularImpostosFixosDoMes(obterImpostosFixos());
+  const rendaPerfil = obterPerfil()?.rendaMensalCentavos ?? null;
   let acumuladoAno = 0;
+  let rendaAno = 0;
   for (let m = mes; m.slice(0, 4) === mes.slice(0, 4); m = somarMeses(m, -1)) {
-    acumuladoAno += totalDoMes(m, perfis, fixos);
+    const doMes = totalDoMes(m, perfis, fixos, rendaPerfil);
+    acumuladoAno += doMes.carga;
+    rendaAno += doMes.renda;
   }
   const transacoes = listarTransacoes({ mes });
 
@@ -389,11 +425,12 @@ export function obterImpostometro(mes: string): Impostometro {
     mes,
     transacoes,
     perfis,
-    rendaPerfilCentavos: obterPerfil()?.rendaMensalCentavos ?? null,
+    rendaPerfilCentavos: rendaPerfil,
     fixos: fixosDoMes(mes, transacoes, fixos),
     itens: listarItensDoMes(mes),
-    impostosMesAnteriorCentavos: totalDoMes(somarMeses(mes, -1), perfis, fixos),
+    impostosMesAnteriorCentavos: totalDoMes(somarMeses(mes, -1), perfis, fixos, rendaPerfil).carga,
     acumuladoAnoCentavos: acumuladoAno,
+    rendaAnoCentavos: rendaAno,
   });
 }
 

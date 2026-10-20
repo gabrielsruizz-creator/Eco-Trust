@@ -4,6 +4,7 @@ import { banco, despesa, limparBanco } from './banco-falso';
 import { perfilTributario } from '@/data/carga-tributaria';
 import { calcularINSS } from '@/data/tributos-renda';
 import {
+  calcularDiaDaLiberdade,
   estimarCompra,
   obterImpostometro,
   obterImpostosDoLancamento,
@@ -177,5 +178,23 @@ describe('estimativa produto a produto', () => {
 
   it('receitas não têm impostos de consumo', () => {
     expect(obterImpostosDoLancamento(despesa({ tipo: 'receita', valorCentavos: 1, categoriaId: SALARIO, data: '2026-10-01' }))).toBeNull();
+  });
+});
+
+describe('Dia da Liberdade de Impostos', () => {
+  it('converte a parte da renda que foi imposto em dias do ano', () => {
+    expect(calcularDiaDaLiberdade(2026, 25_000, 100_000)).toEqual({ percentual: 25, dias: 91, data: '2026-04-02' });
+    expect(calcularDiaDaLiberdade(2028, 50_000, 100_000)?.dias).toBe(183); // ano bissexto
+    expect(calcularDiaDaLiberdade(2026, 1, 0)).toBeNull();
+  });
+
+  it('usa a carga e a renda do ano, só dos meses com uso do app', () => {
+    banco.transacoes = [
+      despesa({ valorCentavos: 100_000, categoriaId: SUPERMERCADO, data: '2026-10-05' }), // 230
+      despesa({ tipo: 'receita', valorCentavos: 400_000, categoriaId: SALARIO, data: '2026-10-01' }),
+      despesa({ valorCentavos: 10_000, categoriaId: SUPERMERCADO, data: '2026-09-10' }), // 23; renda do perfil (5 mil)
+    ];
+    const lib = obterImpostometro('2026-10').liberdade!;
+    expect(lib.percentual).toBe(Math.round(((23_000 + 2_300) / (400_000 + 500_000)) * 1000) / 10);
   });
 });
