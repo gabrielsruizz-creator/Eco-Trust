@@ -37,11 +37,7 @@ export default function ImpostosScreen() {
       subtitulo="Quanto do seu dinheiro vai para o governo"
       acoes={[
         { icone: 'ajustes', rotulo: 'Ajustar tipos de consumo', aoTocar: () => router.push('/ajustar-impostos') },
-        {
-          icone: 'mais',
-          rotulo: 'Nova despesa',
-          aoTocar: () => router.push({ pathname: '/novo-lancamento', params: { tipo: 'despesa' } }),
-        },
+        { icone: 'qrcode', rotulo: 'Ler QR Code da nota fiscal', aoTocar: () => router.push('/ler-nota') },
       ]}>
       {/* Mês */}
       <View style={styles.seletorMes}>

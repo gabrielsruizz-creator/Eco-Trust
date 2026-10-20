@@ -66,6 +66,17 @@ export function perfilTributarioDaCategoria(categoria: Pick<Categoria, 'nome' | 
   return categoria.perfilTributario ?? perfilPorNome(categoria.nome);
 }
 
+/**
+ * Categoria de despesa mais provável para uma loja (ex.: nome do emitente da nota fiscal).
+ * Procura uma categoria com o mesmo tipo de consumo, dando preferência às padrão.
+ */
+export function sugerirCategoriaPorLoja(nomeLoja: string): number | null {
+  const perfil = perfilPorNome(nomeLoja);
+  if (perfil === 'geral') return null;
+  const candidatas = listarCategorias('despesa').filter((c) => perfilTributarioDaCategoria(c) === perfil);
+  return (candidatas.find((c) => c.padrao) ?? candidatas[0])?.id ?? null;
+}
+
 /** Muda o tipo de consumo de uma categoria de despesa (vale também para as padrão). */
 export function alterarPerfilTributario(id: number, perfil: PerfilTributarioId) {
   const categoria = buscarCategoria(id);

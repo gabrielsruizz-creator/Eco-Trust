@@ -49,6 +49,8 @@ export const ICONES = {
   impostos: { ios: 'building.columns', android: 'account_balance' },
   recibo: { ios: 'doc.text', android: 'receipt' },
   relogio: { ios: 'clock', android: 'schedule' },
+  qrcode: { ios: 'qrcode.viewfinder', android: 'qr_code_scanner' },
+  lanterna: { ios: 'flashlight.on.fill', android: 'flashlight_on' },
   // Categorias e metas
   alimentacao: { ios: 'fork.knife', android: 'restaurant' },
   supermercado: { ios: 'cart', android: 'shopping_cart' },

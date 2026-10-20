@@ -6,6 +6,7 @@ import { buscarCategoria } from '@/repositories/categorias-repository';
 import {
   atualizarTransacao,
   buscarTransacao,
+  buscarTransacaoPorChaveNota,
   criarTransacao,
   listarDiasComLancamentos,
   listarTransacoes,
@@ -13,7 +14,7 @@ import {
 } from '@/repositories/transacoes-repository';
 import { ErroValidacao } from '@/services/erros';
 import type { FiltroTransacoes, NovaTransacao, Transacao } from '@/types/financas';
-import { dataValida, hoje } from '@/utils/datas';
+import { dataValida, formatarData, hoje } from '@/utils/datas';
 
 const MAX_DESCRICAO = 120;
 const DATA_MINIMA = '2000-01-01';
@@ -28,12 +29,17 @@ export function obterDiasComLancamentos(): Set<string> {
   return new Set(listarDiasComLancamentos());
 }
 
+/** Lançamento já registrado com esta nota fiscal (chave de acesso da NFC-e). */
+export function obterTransacaoPorChaveNota(chave: string): Transacao | null {
+  return buscarTransacaoPorChaveNota(chave);
+}
+
 export function obterTransacao(id: number): Transacao | null {
   return buscarTransacao(id);
 }
 
 /** Valida e normaliza os dados de um lançamento (usado ao criar e ao editar). */
-function validarTransacao(dados: NovaTransacao): NovaTransacao {
+function validarTransacao(dados: NovaTransacao, idAtual?: number): NovaTransacao {
   if (!Number.isInteger(dados.valorCentavos) || dados.valorCentavos <= 0) {
     throw new ErroValidacao('Informe um valor maior que zero.');
   }
@@ -58,6 +64,15 @@ function validarTransacao(dados: NovaTransacao): NovaTransacao {
   if (tributos !== null && tributos >= dados.valorCentavos) {
     throw new ErroValidacao('Os tributos da nota precisam ser menores que o valor da compra.');
   }
+  const chaveNota = dados.tipo === 'despesa' && dados.chaveNota && /^\d{44}$/.test(dados.chaveNota) ? dados.chaveNota : null;
+  if (chaveNota) {
+    const existente = buscarTransacaoPorChaveNota(chaveNota);
+    if (existente && existente.id !== idAtual) {
+      throw new ErroValidacao(
+        `Esta nota já foi registrada em ${formatarData(existente.data)} (${existente.descricao || existente.categoriaNome}).`,
+      );
+    }
+  }
 
   return {
     ...dados,
@@ -66,6 +81,7 @@ function validarTransacao(dados: NovaTransacao): NovaTransacao {
     recorrente: dados.tipo === 'despesa' && dados.recorrente,
     // Tributos da nota fiscal só fazem sentido em despesas.
     tributosCentavos: tributos,
+    chaveNota,
   };
 }
 
@@ -74,7 +90,7 @@ export function adicionarTransacao(nova: NovaTransacao): number {
 }
 
 export function editarTransacao(id: number, dados: NovaTransacao) {
-  const atualizou = atualizarTransacao(id, validarTransacao(dados));
+  const atualizou = atualizarTransacao(id, validarTransacao(dados, id));
   if (!atualizou) {
     throw new ErroValidacao('Este lançamento não existe mais.');
   }

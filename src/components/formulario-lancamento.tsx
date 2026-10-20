@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import { useState, type ReactNode } from 'react';
 import {
   Alert,
@@ -33,6 +34,16 @@ import { vibrarErro, vibrarSucesso } from '@/utils/vibracao';
 
 type OpcaoData = 'hoje' | 'ontem' | 'outra';
 
+/** Dados que chegam já preenchidos (ex.: lidos do QR Code da nota fiscal). O usuário confere e salva. */
+export type SugestaoLancamento = Partial<
+  Pick<Transacao, 'valorCentavos' | 'tributosCentavos' | 'data' | 'descricao' | 'categoriaId' | 'chaveNota'>
+> & {
+  /** Página da nota na SEFAZ (.gov.br), para conferir */
+  urlNota?: string | null;
+  /** Ex.: "NFC-e nº 12345 · SP" */
+  resumoNota?: string;
+};
+
 type Props = {
   titulo: string;
   /** Lançamento existente, para edição. Sem ele, o formulário começa vazio. */
@@ -41,6 +52,8 @@ type Props = {
   aoSalvar: (dados: NovaTransacao) => void;
   /** Tipo já escolhido ao abrir um novo lançamento (atalhos Receita/Despesa) */
   tipoInicial?: TipoTransacao;
+  /** Novo lançamento com dados pré-preenchidos (sempre despesa) */
+  sugestao?: SugestaoLancamento;
 };
 
 function opcaoDataInicial(data: string): OpcaoData {
@@ -50,25 +63,23 @@ function opcaoDataInicial(data: string): OpcaoData {
 }
 
 /** Formulário de receita/despesa, usado para criar e para editar lançamentos. */
-export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 'despesa' }: Props) {
+export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 'despesa', sugestao }: Props) {
   const theme = useTheme();
-  const [tipo, setTipo] = useState<TipoTransacao>(inicial?.tipo ?? tipoInicial);
+  const base = inicial ?? sugestao;
+  const [tipo, setTipo] = useState<TipoTransacao>(inicial?.tipo ?? (sugestao ? 'despesa' : tipoInicial));
   const categorias = useCategorias(tipo);
-  const [valorTexto, setValorTexto] = useState(
-    inicial ? centavosParaTexto(inicial.valorCentavos) : '',
-  );
-  const [descricao, setDescricao] = useState(inicial?.descricao ?? '');
-  const [categoriaId, setCategoriaId] = useState<number | null>(inicial?.categoriaId ?? null);
-  const [opcaoData, setOpcaoData] = useState<OpcaoData>(
-    inicial ? opcaoDataInicial(inicial.data) : 'hoje',
-  );
+  const [valorTexto, setValorTexto] = useState(base?.valorCentavos ? centavosParaTexto(base.valorCentavos) : '');
+  const [descricao, setDescricao] = useState(base?.descricao ?? '');
+  const [categoriaId, setCategoriaId] = useState<number | null>(base?.categoriaId ?? null);
+  const [opcaoData, setOpcaoData] = useState<OpcaoData>(base?.data ? opcaoDataInicial(base.data) : 'hoje');
   const [outraData, setOutraData] = useState<string | null>(
-    inicial && opcaoDataInicial(inicial.data) === 'outra' ? inicial.data : null,
+    base?.data && opcaoDataInicial(base.data) === 'outra' ? base.data : null,
   );
   const [recorrente, setRecorrente] = useState(inicial?.recorrente ?? false);
   const [tributosTexto, setTributosTexto] = useState(
-    inicial?.tributosCentavos != null ? centavosParaTexto(inicial.tributosCentavos) : '',
+    base?.tributosCentavos != null ? centavosParaTexto(base.tributosCentavos) : '',
   );
+  const chaveNota = inicial?.chaveNota ?? sugestao?.chaveNota ?? null;
   const [criandoCategoria, setCriandoCategoria] = useState(false);
 
   const valorCentavos = lerValorEmCentavos(valorTexto);
@@ -118,6 +129,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
         data,
         recorrente: tipo === 'despesa' && recorrente,
         tributosCentavos: tipo === 'despesa' ? tributosCentavos : null,
+        chaveNota: tipo === 'despesa' ? chaveNota : null,
       });
       vibrarSucesso();
       router.back();
@@ -154,6 +166,37 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
             style={styles.flex}
             contentContainerStyle={styles.conteudo}
             keyboardShouldPersistTaps="handled">
+            {sugestao?.chaveNota && (
+              <View style={[styles.aviso, { backgroundColor: theme.accentSoft }]}>
+                <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+                  Dados lidos da nota fiscal
+                </ThemedText>
+                <ThemedText type="small">
+                  {sugestao.resumoNota ? `${sugestao.resumoNota}. ` : ''}Confira o valor, a categoria e os
+                  tributos antes de salvar.
+                </ThemedText>
+                {sugestao.urlNota && (
+                  <Pressable
+                    onPress={() => openBrowserAsync(sugestao.urlNota!)}
+                    accessibilityRole="link"
+                    hitSlop={8}>
+                    <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+                      Ver a nota no site da SEFAZ
+                    </ThemedText>
+                  </Pressable>
+                )}
+              </View>
+            )}
+
+            {!inicial && !sugestao && tipo === 'despesa' && (
+              <Botao
+                texto="Ler QR Code da nota fiscal"
+                variante="secundario"
+                icone="qrcode"
+                onPress={() => router.replace('/ler-nota')}
+              />
+            )}
+
             <View style={styles.linha} accessibilityRole="radiogroup">
               <Botao
                 texto="Despesa"
@@ -175,7 +218,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
               valor={valorTexto}
               aoMudar={setValorTexto}
               rotulo={tipo === 'despesa' ? 'Valor da despesa em reais' : 'Valor da receita em reais'}
-              autoFocus={!inicial}
+              autoFocus={!base}
             />
 
             <Secao titulo="Descrição">
@@ -361,6 +404,11 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     padding: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  aviso: {
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+    gap: Spacing.one,
   },
   rodape: {
     padding: Spacing.three,

@@ -11,12 +11,13 @@ type LinhaTransacao = {
   data: string;
   recorrente: number;
   tributos_centavos: number | null;
+  chave_nota: string | null;
   criado_em: string;
 };
 
 const SELECT_TRANSACAO = `
   SELECT t.id, t.tipo, t.valor_centavos, t.descricao, t.categoria_id, c.nome AS categoria_nome,
-         t.data, t.recorrente, t.tributos_centavos, t.criado_em
+         t.data, t.recorrente, t.tributos_centavos, t.chave_nota, t.criado_em
   FROM transacoes t
   JOIN categorias c ON c.id = t.categoria_id`;
 
@@ -31,6 +32,7 @@ function paraTransacao(l: LinhaTransacao): Transacao {
     data: l.data,
     recorrente: l.recorrente === 1,
     tributosCentavos: l.tributos_centavos,
+    chaveNota: l.chave_nota,
     criadoEm: l.criado_em,
   };
 }
@@ -96,10 +98,16 @@ export function listarDiasComLancamentos(): string[] {
     .map((l) => l.data);
 }
 
+/** Lançamento que já usa esta chave de NFC-e (para não registrar a mesma nota duas vezes). */
+export function buscarTransacaoPorChaveNota(chave: string): Transacao | null {
+  const linha = getBanco().getFirstSync<LinhaTransacao>(`${SELECT_TRANSACAO} WHERE t.chave_nota = ?`, chave);
+  return linha ? paraTransacao(linha) : null;
+}
+
 export function criarTransacao(nova: NovaTransacao): number {
   const resultado = getBanco().runSync(
-    `INSERT INTO transacoes (tipo, valor_centavos, descricao, categoria_id, data, recorrente, tributos_centavos, criado_em)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO transacoes (tipo, valor_centavos, descricao, categoria_id, data, recorrente, tributos_centavos, chave_nota, criado_em)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     nova.tipo,
     nova.valorCentavos,
     nova.descricao,
@@ -107,6 +115,7 @@ export function criarTransacao(nova: NovaTransacao): number {
     nova.data,
     nova.recorrente ? 1 : 0,
     nova.tributosCentavos,
+    nova.chaveNota,
     new Date().toISOString(),
   );
   notificarMudanca();
@@ -117,7 +126,7 @@ export function criarTransacao(nova: NovaTransacao): number {
 export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
   const resultado = getBanco().runSync(
     `UPDATE transacoes
-     SET tipo = ?, valor_centavos = ?, descricao = ?, categoria_id = ?, data = ?, recorrente = ?, tributos_centavos = ?
+     SET tipo = ?, valor_centavos = ?, descricao = ?, categoria_id = ?, data = ?, recorrente = ?, tributos_centavos = ?, chave_nota = ?
      WHERE id = ?`,
     dados.tipo,
     dados.valorCentavos,
@@ -126,6 +135,7 @@ export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
     dados.data,
     dados.recorrente ? 1 : 0,
     dados.tributosCentavos,
+    dados.chaveNota,
     id,
   );
   notificarMudanca();

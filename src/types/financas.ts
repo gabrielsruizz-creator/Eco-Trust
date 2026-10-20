@@ -29,6 +29,8 @@ export type Transacao = {
   recorrente: boolean;
   /** Tributos informados na nota fiscal ("Valor aprox. dos tributos"). null = o app estima */
   tributosCentavos: number | null;
+  /** Chave de acesso da NFC-e, quando a despesa veio do QR Code da nota */
+  chaveNota: string | null;
   /** Momento em que foi registrado (ISO), quando disponível */
   criadoEm?: string;
 };
