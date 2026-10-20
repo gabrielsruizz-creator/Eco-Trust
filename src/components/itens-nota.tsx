@@ -14,6 +14,20 @@ import { formatarCentavos } from '@/utils/moeda';
 /** Quantos itens aparecem antes do "Ver todos" */
 const ITENS_VISIVEIS = 8;
 
+/** Soma gasto e imposto estimado por tipo de produto (os não reconhecidos ficam juntos, pela categoria). */
+function agruparPorTipo(itens: ItemNota[], impostos: ImpostoDoItem[]) {
+  const grupos = new Map<string, { tipo: string; gastoCentavos: number; impostoCentavos: number; quantidade: number }>();
+  itens.forEach((item, i) => {
+    const tipo = impostos[i]?.tipo ?? 'outros (média da categoria)';
+    const grupo = grupos.get(tipo) ?? { tipo, gastoCentavos: 0, impostoCentavos: 0, quantidade: 0 };
+    grupo.gastoCentavos += item.valorTotalCentavos;
+    grupo.impostoCentavos += impostos[i]?.centavos ?? 0;
+    grupo.quantidade++;
+    grupos.set(tipo, grupo);
+  });
+  return [...grupos.values()].sort((a, b) => b.impostoCentavos - a.impostoCentavos);
+}
+
 function quantidade(item: ItemNota) {
   const n = item.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
   return item.unidade ? `${n} ${item.unidade.toLocaleLowerCase('pt-BR')}` : n;
@@ -71,6 +85,27 @@ export function ItensDaNota({
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
           {nota.emitente}
         </ThemedText>
+      )}
+
+      {impostosPorItem && (
+        <View style={[styles.resumoTipos, { backgroundColor: theme.backgroundSelected }]}>
+          <ThemedText type="smallBold">Imposto estimado por tipo de produto</ThemedText>
+          {agruparPorTipo(nota.itens, impostosPorItem).map((g) => (
+            <View
+              key={g.tipo}
+              style={styles.linha}
+              accessible
+              accessibilityLabel={`${g.tipo}: ${formatarCentavos(g.impostoCentavos)} de impostos em ${formatarCentavos(g.gastoCentavos)}`}>
+              <ThemedText type="small" style={styles.flex} numberOfLines={1}>
+                {g.tipo.charAt(0).toLocaleUpperCase('pt-BR') + g.tipo.slice(1)}{' '}
+                <ThemedText type="small" themeColor="textSecondary">
+                  ({g.quantidade} {g.quantidade === 1 ? 'item' : 'itens'})
+                </ThemedText>
+              </ThemedText>
+              <ThemedText type="smallBold">≈ {formatarCentavos(g.impostoCentavos)}</ThemedText>
+            </View>
+          ))}
+        </View>
       )}
 
       {visiveis.map((item, i) => {
@@ -148,6 +183,11 @@ const styles = StyleSheet.create({
   },
   valores: {
     alignItems: 'flex-end',
+  },
+  resumoTipos: {
+    gap: Spacing.one,
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
   },
   item: {
     flexDirection: 'row',

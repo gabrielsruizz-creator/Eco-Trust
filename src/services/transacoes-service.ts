@@ -57,7 +57,8 @@ function validarTransacao(dados: NovaTransacao, idAtual?: number): NovaTransacao
   if (!categoria || categoria.tipo !== dados.tipo) {
     throw new ErroValidacao('Escolha uma categoria válida.');
   }
-  const tributos = dados.tipo === 'despesa' ? dados.tributosCentavos : null;
+  // Zero não conta como valor informado: o Impostômetro estima pelos produtos ou pela categoria.
+  const tributos = dados.tipo === 'despesa' && dados.tributosCentavos ? dados.tributosCentavos : null;
   if (tributos !== null && (!Number.isInteger(tributos) || tributos < 0)) {
     throw new ErroValidacao('Valor dos tributos inválido.');
   }

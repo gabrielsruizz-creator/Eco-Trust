@@ -266,9 +266,10 @@ export async function consultarNota(qr: QrNota): Promise<DadosNota> {
   return {
     ...base,
     valorCentavos: pagina.valorCentavos ?? base.valorCentavos,
-    // Tributos maiores que a compra seriam leitura errada da página.
+    // Zero = a loja não informou; maior que a compra = leitura errada da página. Nos dois casos, o app estima.
     tributosCentavos:
       pagina.tributosCentavos !== null &&
+      pagina.tributosCentavos > 0 &&
       (pagina.valorCentavos ?? base.valorCentavos ?? Infinity) > pagina.tributosCentavos
         ? pagina.tributosCentavos
         : null,

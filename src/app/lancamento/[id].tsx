@@ -158,7 +158,7 @@ function descreverImpostos(i: ImpostosDoLancamento) {
   const pct = `${i.percentual.toLocaleString('pt-BR')}%`;
   if (i.origem === 'nota') return `Valor informado na nota fiscal: ${pct} do que você pagou.`;
   const semTributos = i.notaSemTributos
-    ? 'Esta nota não informou os tributos, como manda a Lei 12.741/2012. '
+    ? 'Esta nota não informou os tributos (veio vazio ou R$ 0,00), apesar da Lei 12.741/2012. '
     : '';
   if (i.origem === 'itens') {
     return `${semTributos}Estimativa do EcoTrust produto a produto: cerca de ${pct} do que você pagou. Veja o imposto de cada item abaixo.`;

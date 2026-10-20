@@ -80,7 +80,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
   );
   const [recorrente, setRecorrente] = useState(inicial?.recorrente ?? false);
   const [tributosTexto, setTributosTexto] = useState(
-    base?.tributosCentavos != null ? centavosParaTexto(base.tributosCentavos) : '',
+    base?.tributosCentavos ? centavosParaTexto(base.tributosCentavos) : '',
   );
   const chaveNota = inicial?.chaveNota ?? sugestao?.chaveNota ?? null;
   const [criandoCategoria, setCriandoCategoria] = useState(false);
@@ -91,10 +91,12 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
   const dataNoFuturo = data !== null && data > hoje();
 
   // Impostos: o valor da nota fiscal (opcional) ou a estimativa pelo tipo de consumo da categoria.
-  const informouTributos = tipo === 'despesa' && tributosTexto.trim() !== '';
-  const tributosCentavos = informouTributos ? lerValorEmCentavos(tributosTexto, true) : null;
+  const digitouTributos = tipo === 'despesa' && tributosTexto.trim() !== '';
+  const tributosCentavos = digitouTributos ? lerValorEmCentavos(tributosTexto, true) : null;
+  // R$ 0,00 não é um valor real de tributos: o app estima como se o campo estivesse vazio.
+  const informouTributos = digitouTributos && tributosCentavos !== 0;
   let avisoTributos: string | null = null;
-  if (informouTributos && tributosCentavos === null) avisoTributos = 'Valor dos tributos inválido.';
+  if (digitouTributos && tributosCentavos === null) avisoTributos = 'Valor dos tributos inválido.';
   else if (tributosCentavos !== null && valorCentavos !== null && tributosCentavos >= valorCentavos) {
     avisoTributos = 'Os tributos precisam ser menores que o valor da compra.';
   }
@@ -102,8 +104,10 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
   const cargaEstimada = perfil ? cargaTotal(perfil) : null;
   const itensNota = sugestao?.itensNota ?? [];
   let dicaTributos = sugestao?.chaveNota
-    ? 'A nota não informou os tributos. '
-    : 'Procure "Valor aprox. dos tributos" no fim do cupom fiscal. ';
+    ? 'A nota não informou os tributos (ou veio R$ 0,00). '
+    : digitouTributos && tributosCentavos === 0
+      ? 'R$ 0,00 não conta como valor da nota. '
+      : 'Procure "Valor aprox. dos tributos" no fim do cupom fiscal. ';
   if (informouTributos) dicaTributos = 'O seu Impostômetro vai usar o valor da nota.';
   else if (perfil && valorCentavos !== null && itensNota.length > 0) {
     const estimativa = estimarCompra(valorCentavos, perfil, itensNota);
@@ -137,7 +141,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
         categoriaId: categoria.id,
         data,
         recorrente: tipo === 'despesa' && recorrente,
-        tributosCentavos: tipo === 'despesa' ? tributosCentavos : null,
+        tributosCentavos: tipo === 'despesa' && informouTributos ? tributosCentavos : null,
         chaveNota: tipo === 'despesa' ? chaveNota : null,
       });
       vibrarSucesso();

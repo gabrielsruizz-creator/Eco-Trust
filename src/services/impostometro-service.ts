@@ -59,7 +59,7 @@ export type ImpostosDoLancamento = {
   origem: OrigemImposto;
   perfil: PerfilTributario;
   porTributo: { tributo: Tributo; centavos: number }[];
-  /** Veio de uma nota fiscal que não informou os tributos */
+  /** Veio de uma nota fiscal que não informou os tributos (ou informou R$ 0,00) */
   notaSemTributos: boolean;
   /** Estimativa de cada item da nota, na ordem da nota (só quando origem = 'itens') */
   porItem: ImpostoDoItem[] | null;
@@ -139,10 +139,12 @@ function somarPartes(partes: Map<TributoId, number>, valorCentavos: number, perf
 function dividirImposto(
   valorCentavos: number,
   perfil: PerfilTributario,
-  tributosNota: number | null,
+  tributosInformados: number | null,
   itens: ItemParaEstimar[] = [],
 ): { origem: OrigemImposto; total: number; partes: Map<TributoId, number> } {
   const partes = new Map<TributoId, number>();
+  // R$ 0,00 de tributos numa compra não é real (a loja deixou de informar): estima como se não tivesse.
+  const tributosNota = tributosInformados !== null && tributosInformados > 0 ? tributosInformados : null;
   const somaItens = itens.reduce((s, i) => s + i.valorTotalCentavos, 0);
 
   if (tributosNota === null && somaItens > 0) {
@@ -212,7 +214,7 @@ export function obterImpostosDoLancamento(transacao: Transacao | null): Impostos
       tributo: t,
       centavos: Math.round(partes.get(t.id) ?? 0),
     })),
-    notaSemTributos: transacao.chaveNota !== null && transacao.tributosCentavos === null,
+    notaSemTributos: transacao.chaveNota !== null && !transacao.tributosCentavos,
     porItem: origem === 'itens' ? estimarItens(itens, perfil, transacao.valorCentavos) : null,
   };
 }
