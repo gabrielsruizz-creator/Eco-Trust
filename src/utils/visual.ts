@@ -6,7 +6,11 @@
 import type { NomeIcone } from '@/components/icone';
 
 const POR_NOME: Record<string, { icone: NomeIcone; cor: number }> = {
+  supermercado: { icone: 'supermercado', cor: 2 },
   alimentacao: { icone: 'alimentacao', cor: 7 },
+  combustivel: { icone: 'combustivel', cor: 3 },
+  'contas da casa': { icone: 'contas', cor: 3 },
+  'telefone e internet': { icone: 'telefone', cor: 4 },
   transporte: { icone: 'transporte', cor: 0 },
   moradia: { icone: 'moradia', cor: 2 },
   saude: { icone: 'saude', cor: 4 },

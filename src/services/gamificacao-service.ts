@@ -218,7 +218,7 @@ function montarEntrada(inicioConta: string | null): EntradaJornada {
       ...(orcamentosAtuais.geral ? [{ categoriaId: null, limiteCentavos: orcamentosAtuais.geral.limiteCentavos }] : []),
       ...orcamentosAtuais.categorias.map((c) => ({ categoriaId: c.categoriaId, limiteCentavos: c.limiteCentavos })),
     ],
-    categorias: orcamentosAtuais.categorias.map((c) => ({ id: c.categoriaId ?? 0, nome: c.nome, tipo: 'despesa' as const, padrao: false })),
+    categorias: orcamentosAtuais.categorias.map((c) => ({ id: c.categoriaId ?? 0, nome: c.nome, tipo: 'despesa' as const, padrao: false, perfilTributario: null })),
     perfil: null,
     dataHoje,
   });

@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import { useState, type ReactNode } from 'react';
 import {
   Alert,
@@ -21,15 +22,30 @@ import { Botao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { cargaTotal, perfilTributario } from '@/data/carga-tributaria';
 import { useCategorias } from '@/hooks/use-dados';
 import { useTheme } from '@/hooks/use-theme';
+import { perfilTributarioDaCategoria } from '@/services/categorias-service';
+import { estimarCompra, type ItemParaEstimar } from '@/services/impostometro-service';
 import { ErroValidacao } from '@/services/erros';
 import type { NovaTransacao, TipoTransacao, Transacao } from '@/types/financas';
 import { hoje, ontem } from '@/utils/datas';
-import { centavosParaTexto, lerValorEmCentavos } from '@/utils/moeda';
+import { centavosParaTexto, formatarCentavos, lerValorEmCentavos } from '@/utils/moeda';
 import { vibrarErro, vibrarSucesso } from '@/utils/vibracao';
 
 type OpcaoData = 'hoje' | 'ontem' | 'outra';
+
+/** Dados que chegam já preenchidos (ex.: lidos do QR Code da nota fiscal). O usuário confere e salva. */
+export type SugestaoLancamento = Partial<
+  Pick<Transacao, 'valorCentavos' | 'tributosCentavos' | 'data' | 'descricao' | 'categoriaId' | 'chaveNota'>
+> & {
+  /** Página da nota na SEFAZ (.gov.br), para conferir */
+  urlNota?: string | null;
+  /** Ex.: "NFC-e nº 12345 · SP" */
+  resumoNota?: string;
+  /** Produtos da nota: sem os tributos informados, a estimativa é feita item a item */
+  itensNota?: ItemParaEstimar[];
+};
 
 type Props = {
   titulo: string;
@@ -39,6 +55,8 @@ type Props = {
   aoSalvar: (dados: NovaTransacao) => void;
   /** Tipo já escolhido ao abrir um novo lançamento (atalhos Receita/Despesa) */
   tipoInicial?: TipoTransacao;
+  /** Novo lançamento com dados pré-preenchidos (sempre despesa) */
+  sugestao?: SugestaoLancamento;
 };
 
 function opcaoDataInicial(data: string): OpcaoData {
@@ -48,29 +66,61 @@ function opcaoDataInicial(data: string): OpcaoData {
 }
 
 /** Formulário de receita/despesa, usado para criar e para editar lançamentos. */
-export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 'despesa' }: Props) {
+export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 'despesa', sugestao }: Props) {
   const theme = useTheme();
-  const [tipo, setTipo] = useState<TipoTransacao>(inicial?.tipo ?? tipoInicial);
+  const base = inicial ?? sugestao;
+  const [tipo, setTipo] = useState<TipoTransacao>(inicial?.tipo ?? (sugestao ? 'despesa' : tipoInicial));
   const categorias = useCategorias(tipo);
-  const [valorTexto, setValorTexto] = useState(
-    inicial ? centavosParaTexto(inicial.valorCentavos) : '',
-  );
-  const [descricao, setDescricao] = useState(inicial?.descricao ?? '');
-  const [categoriaId, setCategoriaId] = useState<number | null>(inicial?.categoriaId ?? null);
-  const [opcaoData, setOpcaoData] = useState<OpcaoData>(
-    inicial ? opcaoDataInicial(inicial.data) : 'hoje',
-  );
+  const [valorTexto, setValorTexto] = useState(base?.valorCentavos ? centavosParaTexto(base.valorCentavos) : '');
+  const [descricao, setDescricao] = useState(base?.descricao ?? '');
+  const [categoriaId, setCategoriaId] = useState<number | null>(base?.categoriaId ?? null);
+  const [opcaoData, setOpcaoData] = useState<OpcaoData>(base?.data ? opcaoDataInicial(base.data) : 'hoje');
   const [outraData, setOutraData] = useState<string | null>(
-    inicial && opcaoDataInicial(inicial.data) === 'outra' ? inicial.data : null,
+    base?.data && opcaoDataInicial(base.data) === 'outra' ? base.data : null,
   );
   const [recorrente, setRecorrente] = useState(inicial?.recorrente ?? false);
+  const [tributosTexto, setTributosTexto] = useState(
+    base?.tributosCentavos ? centavosParaTexto(base.tributosCentavos) : '',
+  );
+  const chaveNota = inicial?.chaveNota ?? sugestao?.chaveNota ?? null;
   const [criandoCategoria, setCriandoCategoria] = useState(false);
 
   const valorCentavos = lerValorEmCentavos(valorTexto);
   const categoria = categorias.find((c) => c.id === categoriaId) ?? null;
   const data = opcaoData === 'hoje' ? hoje() : opcaoData === 'ontem' ? ontem() : outraData;
   const dataNoFuturo = data !== null && data > hoje();
-  const podeSalvar = valorCentavos !== null && categoria !== null && data !== null && !dataNoFuturo;
+
+  // Impostos: o valor da nota fiscal (opcional) ou a estimativa pelo tipo de consumo da categoria.
+  const digitouTributos = tipo === 'despesa' && tributosTexto.trim() !== '';
+  const tributosCentavos = digitouTributos ? lerValorEmCentavos(tributosTexto, true) : null;
+  // R$ 0,00 não é um valor real de tributos: o app estima como se o campo estivesse vazio.
+  const informouTributos = digitouTributos && tributosCentavos !== 0;
+  let avisoTributos: string | null = null;
+  if (digitouTributos && tributosCentavos === null) avisoTributos = 'Valor dos tributos inválido.';
+  else if (tributosCentavos !== null && valorCentavos !== null && tributosCentavos >= valorCentavos) {
+    avisoTributos = 'Os tributos precisam ser menores que o valor da compra.';
+  }
+  const perfil = categoria ? perfilTributario(perfilTributarioDaCategoria(categoria)) : null;
+  const cargaEstimada = perfil ? cargaTotal(perfil) : null;
+  const itensNota = sugestao?.itensNota ?? [];
+  let dicaTributos = sugestao?.chaveNota
+    ? 'A nota não informou os tributos (ou veio R$ 0,00). '
+    : digitouTributos && tributosCentavos === 0
+      ? 'R$ 0,00 não conta como valor da nota. '
+      : 'Procure "Valor aprox. dos tributos" no fim do cupom fiscal. ';
+  if (informouTributos) dicaTributos = 'O seu Impostômetro vai usar o valor da nota.';
+  else if (perfil && valorCentavos !== null && itensNota.length > 0) {
+    const estimativa = estimarCompra(valorCentavos, perfil, itensNota);
+    dicaTributos += `Estimativa do EcoTrust pelos ${itensNota.length} produtos: cerca de ${formatarCentavos(estimativa.totalCentavos)} (${estimativa.percentual.toLocaleString('pt-BR')}%).`;
+  } else if (!perfil || cargaEstimada === null) dicaTributos += 'Sem ele, o EcoTrust estima pelo tipo da categoria.';
+  else if (cargaEstimada === 0) dicaTributos += 'Esta categoria está marcada como sem imposto sobre consumo.';
+  else {
+    const estimativa = valorCentavos !== null ? `: ${formatarCentavos(Math.round((valorCentavos * cargaEstimada) / 100))}` : '';
+    dicaTributos += `Sem ele, estimamos cerca de ${cargaEstimada}% (${perfil.nome.toLocaleLowerCase('pt-BR')})${estimativa}.`;
+  }
+
+  const podeSalvar =
+    valorCentavos !== null && categoria !== null && data !== null && !dataNoFuturo && avisoTributos === null;
 
   let avisoData: string | null = null;
   if (dataNoFuturo) avisoData = 'A data não pode ser no futuro.';
@@ -91,6 +141,8 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
         categoriaId: categoria.id,
         data,
         recorrente: tipo === 'despesa' && recorrente,
+        tributosCentavos: tipo === 'despesa' && informouTributos ? tributosCentavos : null,
+        chaveNota: tipo === 'despesa' ? chaveNota : null,
       });
       vibrarSucesso();
       router.back();
@@ -127,6 +179,37 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
             style={styles.flex}
             contentContainerStyle={styles.conteudo}
             keyboardShouldPersistTaps="handled">
+            {sugestao?.chaveNota && (
+              <View style={[styles.aviso, { backgroundColor: theme.accentSoft }]}>
+                <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+                  Dados lidos da nota fiscal
+                </ThemedText>
+                <ThemedText type="small">
+                  {sugestao.resumoNota ? `${sugestao.resumoNota}. ` : ''}Confira o valor, a categoria e os
+                  tributos antes de salvar.
+                </ThemedText>
+                {sugestao.urlNota && (
+                  <Pressable
+                    onPress={() => openBrowserAsync(sugestao.urlNota!)}
+                    accessibilityRole="link"
+                    hitSlop={8}>
+                    <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+                      Ver a nota no site da SEFAZ
+                    </ThemedText>
+                  </Pressable>
+                )}
+              </View>
+            )}
+
+            {!inicial && !sugestao && tipo === 'despesa' && (
+              <Botao
+                texto="Ler QR Code da nota fiscal"
+                variante="secundario"
+                icone="qrcode"
+                onPress={() => router.replace('/ler-nota')}
+              />
+            )}
+
             <View style={styles.linha} accessibilityRole="radiogroup">
               <Botao
                 texto="Despesa"
@@ -148,7 +231,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
               valor={valorTexto}
               aoMudar={setValorTexto}
               rotulo={tipo === 'despesa' ? 'Valor da despesa em reais' : 'Valor da receita em reais'}
-              autoFocus={!inicial}
+              autoFocus={!base}
             />
 
             <Secao titulo="Descrição">
@@ -213,6 +296,29 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
                 </ThemedText>
               )}
             </Secao>
+
+            {tipo === 'despesa' && (
+              <Secao titulo="Impostos da nota fiscal (opcional)">
+                <TextInput
+                  style={estiloCampo}
+                  value={tributosTexto}
+                  onChangeText={setTributosTexto}
+                  placeholder="Ex.: 18,35"
+                  placeholderTextColor={theme.textSecondary}
+                  keyboardType="decimal-pad"
+                  accessibilityLabel="Valor aproximado dos tributos na nota fiscal, em reais (opcional)"
+                  returnKeyType="done"
+                />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {dicaTributos}
+                </ThemedText>
+                {avisoTributos && (
+                  <ThemedText type="small" style={{ color: theme.negative }} accessibilityLiveRegion="polite">
+                    {avisoTributos}
+                  </ThemedText>
+                )}
+              </Secao>
+            )}
 
             {tipo === 'despesa' && (
               <View style={[styles.recorrente, { backgroundColor: theme.backgroundElement }]}>
@@ -311,6 +417,11 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     padding: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  aviso: {
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+    gap: Spacing.one,
   },
   rodape: {
     padding: Spacing.three,

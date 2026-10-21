@@ -394,6 +394,128 @@ function v11DataNascimento(db: SQLiteDatabase) {
   db.execSync('ALTER TABLE perfil_pessoal ADD COLUMN data_nascimento TEXT');
 }
 
+/**
+ * Ordem e tipo de consumo das categorias padrão de despesa depois do Impostômetro
+ * ("Outros" fica sempre por último). Fixo aqui, e não importado, para a migração nunca mudar.
+ */
+const CATEGORIAS_V12: [nome: string, perfilTributario: string][] = [
+  ['Supermercado', 'supermercado'],
+  ['Alimentação', 'alimentacao'],
+  ['Transporte', 'transporte'],
+  ['Combustível', 'combustivel'],
+  ['Moradia', 'moradia'],
+  ['Contas da casa', 'contas'],
+  ['Telefone e internet', 'telecom'],
+  ['Saúde', 'saude'],
+  ['Educação', 'educacao'],
+  ['Lazer', 'lazer'],
+  ['Compras', 'compras'],
+  ['Assinaturas', 'assinaturas'],
+  ['Viagens', 'viagens'],
+  ['Outros', 'geral'],
+];
+
+/**
+ * Impostômetro pessoal:
+ * - categorias.perfil_tributario: tipo de consumo usado para estimar os impostos (NULL = palpite pelo nome);
+ * - transacoes.tributos_centavos: valor dos tributos informado na nota fiscal (NULL = estimado);
+ * - novas categorias padrão de despesa, que têm carga de impostos bem diferente das demais.
+ */
+function v12Impostometro(db: SQLiteDatabase) {
+  db.execSync(`
+    ALTER TABLE categorias ADD COLUMN perfil_tributario TEXT;
+    ALTER TABLE transacoes ADD COLUMN tributos_centavos INTEGER CHECK (tributos_centavos >= 0);
+  `);
+
+  // As categorias do usuário continuam depois das padrão.
+  db.runSync(`UPDATE categorias SET ordem = ordem + 100 WHERE tipo = 'despesa' AND padrao = 0`);
+  CATEGORIAS_V12.forEach(([nome, perfil], ordem) => {
+    // Se o usuário já tinha criado uma categoria com esse nome, ela continua sendo dele.
+    db.runSync(
+      `INSERT OR IGNORE INTO categorias (nome, tipo, padrao, ordem) VALUES (?, 'despesa', 1, ?)`,
+      nome,
+      ordem,
+    );
+    db.runSync(
+      `UPDATE categorias SET ordem = ?, perfil_tributario = ? WHERE tipo = 'despesa' AND nome = ?`,
+      ordem,
+      perfil,
+      nome,
+    );
+  });
+}
+
+/**
+ * Impostos além do consumo e leitura de notas:
+ * - impostos_fixos: salário bruto (CLT, para calcular INSS e IR) ou valores informados de INSS/IR,
+ *   IPVA e IPTU anuais e outros impostos mensais (ex.: DAS do MEI);
+ * - transacoes.chave_nota: chave de acesso da NFC-e lida pelo QR Code (evita registrar a mesma nota duas vezes).
+ */
+function v13ImpostosFixosENotas(db: SQLiteDatabase) {
+  db.execSync(`
+    CREATE TABLE impostos_fixos (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      salario_bruto_centavos INTEGER CHECK (salario_bruto_centavos >= 0),
+      dependentes INTEGER NOT NULL DEFAULT 0 CHECK (dependentes >= 0),
+      inss_centavos INTEGER CHECK (inss_centavos >= 0),
+      ir_centavos INTEGER CHECK (ir_centavos >= 0),
+      ipva_anual_centavos INTEGER NOT NULL DEFAULT 0 CHECK (ipva_anual_centavos >= 0),
+      iptu_anual_centavos INTEGER NOT NULL DEFAULT 0 CHECK (iptu_anual_centavos >= 0),
+      outros_mensal_centavos INTEGER NOT NULL DEFAULT 0 CHECK (outros_mensal_centavos >= 0),
+      atualizado_em TEXT NOT NULL
+    );
+
+    ALTER TABLE transacoes ADD COLUMN chave_nota TEXT;
+    CREATE INDEX idx_transacoes_chave_nota ON transacoes (chave_nota);
+  `);
+}
+
+/**
+ * Notas fiscais lidas pelo QR Code: loja, endereço de consulta e os itens comprados.
+ * Ficam ligadas ao lançamento e são apagadas junto com ele.
+ */
+function v14ItensDaNota(db: SQLiteDatabase) {
+  db.execSync(`
+    CREATE TABLE notas_fiscais (
+      transacao_id INTEGER PRIMARY KEY REFERENCES transacoes (id) ON DELETE CASCADE,
+      chave TEXT NOT NULL,
+      url TEXT,
+      emitente TEXT,
+      importada_em TEXT NOT NULL
+    );
+
+    CREATE TABLE itens_nota (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      transacao_id INTEGER NOT NULL REFERENCES transacoes (id) ON DELETE CASCADE,
+      ordem INTEGER NOT NULL,
+      descricao TEXT NOT NULL,
+      codigo TEXT,
+      quantidade REAL NOT NULL CHECK (quantidade > 0),
+      unidade TEXT,
+      valor_unitario_centavos INTEGER,
+      valor_total_centavos INTEGER NOT NULL CHECK (valor_total_centavos >= 0)
+    );
+    CREATE INDEX idx_itens_nota_transacao ON itens_nota (transacao_id);
+  `);
+}
+
+/**
+ * - transacoes.dedutivel_ir: despesa de saúde/educação marcada para a declaração do IR (NULL = palpite do app);
+ * - notas_fiscais.cpf_na_nota: se a nota foi emitida com o CPF do consumidor (programas de devolução);
+ * - classificacao_produtos: tipo de produto escolhido pelo usuário para um nome de item da nota.
+ */
+function v15DeducoesCpfEClassificacao(db: SQLiteDatabase) {
+  db.execSync(`
+    ALTER TABLE transacoes ADD COLUMN dedutivel_ir INTEGER;
+    ALTER TABLE notas_fiscais ADD COLUMN cpf_na_nota INTEGER;
+    CREATE TABLE classificacao_produtos (
+      nome TEXT PRIMARY KEY,
+      tipo TEXT NOT NULL,
+      atualizado_em TEXT NOT NULL
+    );
+  `);
+}
+
 const MIGRACOES: Migracao[] = [
   v1CriarTabelas,
   v2ImportarDadosAntigos,
@@ -406,6 +528,10 @@ const MIGRACOES: Migracao[] = [
   v9EvolucaoSaude,
   v10AcademyEForum,
   v11DataNascimento,
+  v12Impostometro,
+  v13ImpostosFixosENotas,
+  v14ItensDaNota,
+  v15DeducoesCpfEClassificacao,
 ];
 
 export function executarMigracoes(db: SQLiteDatabase) {

@@ -85,6 +85,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="editar-perfil" options={{ presentation: 'modal' }} />
           <Stack.Screen name="novo-lancamento" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="ler-nota" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="lancamento/[id]" />
           <Stack.Screen name="editar-lancamento/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="categorias" />
@@ -96,7 +97,10 @@ export default function RootLayout() {
           <Stack.Screen name="saude-financeira" />
           <Stack.Screen name="insights" />
           <Stack.Screen name="orcamento" />
+          <Stack.Screen name="ajustar-impostos" />
+          <Stack.Screen name="impostos-renda" options={{ presentation: 'modal' }} />
           <Stack.Screen name="assinatura" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="academy/index" />
           <Stack.Screen name="academy/curso/[id]" />
           <Stack.Screen name="academy/aula/[id]" />
           <Stack.Screen name="academy/categoria/[id]" />
@@ -109,6 +113,11 @@ export default function RootLayout() {
           <Stack.Screen name="editar-situacao" options={{ presentation: 'modal' }} />
           <Stack.Screen name="refazer-conversa" options={{ presentation: 'modal' }} />
           <Stack.Screen name="conquistas" />
+          <Stack.Screen name="backup" />
+          <Stack.Screen name="imposto-de-renda" />
+          <Stack.Screen name="reforma-tributaria" />
+          <Stack.Screen name="meus-produtos" />
+          <Stack.Screen name="compartilhar-impostos" options={{ presentation: 'modal' }} />
         </Stack.Protected>
       </Stack>
       {/* Por cima de todas as telas */}

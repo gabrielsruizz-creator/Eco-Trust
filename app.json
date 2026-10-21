@@ -49,7 +49,15 @@
           "faceIDPermission": "O EcoTrust usa o Face ID para você entrar no app com segurança."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O EcoTrust usa a câmera para ler o QR Code das notas fiscais e calcular os impostos das suas compras.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

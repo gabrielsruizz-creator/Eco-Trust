@@ -1,23 +1,29 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BloqueioPremium } from '@/components/bloqueio-premium';
 import { PainelAcademy } from '@/components/painel-academy';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { AULAS, CURSOS } from '@/data/academy-conteudo';
 import { useAssinatura } from '@/hooks/use-dados';
 import { temAcesso } from '@/services/assinatura-service';
 
-/** Aba Aprender: a EcoTrust Academy (recurso do Plus; quem é Gratuito vê uma prévia). */
-export default function AprenderScreen() {
+/** EcoTrust Academy (aberta pelo Início e pelo Perfil) (recurso do Plus; quem é Gratuito vê uma prévia). */
+export default function AcademyScreen() {
   const plus = temAcesso('academy', useAssinatura());
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.cabecalho}>
+          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.voltar}>
+            <ThemedText type="smallBold" themeColor="textSecondary">
+              ‹ Voltar
+            </ThemedText>
+          </Pressable>
           <ThemedText style={styles.titulo} accessibilityRole="header">
             EcoTrust Academy
           </ThemedText>
@@ -63,7 +69,12 @@ const styles = StyleSheet.create({
   },
   cabecalho: {
     paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.three,
+    paddingTop: Spacing.one,
+  },
+  voltar: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   titulo: {
     fontSize: 28,
@@ -72,7 +83,7 @@ const styles = StyleSheet.create({
   },
   convite: {
     padding: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.four,
+    paddingBottom: Spacing.four,
   },
   lista: {
     gap: Spacing.half,

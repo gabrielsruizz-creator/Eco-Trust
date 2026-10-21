@@ -2,10 +2,12 @@
  * Categorias: as padrão do EcoTrust são fixas; o usuário pode criar, renomear e excluir as próprias.
  */
 
+import { perfilPorNome, perfilTributarioValido, type PerfilTributarioId } from '@/data/carga-tributaria';
 import {
   buscarCategoria,
   contarTransacoesDaCategoria,
   criarCategoria,
+  definirPerfilTributario,
   listarCategorias,
   removerCategoria,
   renomearCategoria,
@@ -57,6 +59,30 @@ export function adicionarCategoria(nome: string, tipo: TipoTransacao): number {
 export function alterarNomeCategoria(id: number, nome: string) {
   const categoria = buscarCategoriaDoUsuario(id);
   renomearCategoria(id, validarNome(nome, categoria.tipo, id));
+}
+
+/** Tipo de consumo usado no Impostômetro: o escolhido pelo usuário ou um palpite pelo nome. */
+export function perfilTributarioDaCategoria(categoria: Pick<Categoria, 'nome' | 'perfilTributario'>) {
+  return categoria.perfilTributario ?? perfilPorNome(categoria.nome);
+}
+
+/**
+ * Categoria de despesa mais provável para uma loja (ex.: nome do emitente da nota fiscal).
+ * Procura uma categoria com o mesmo tipo de consumo, dando preferência às padrão.
+ */
+export function sugerirCategoriaPorLoja(nomeLoja: string): number | null {
+  const perfil = perfilPorNome(nomeLoja);
+  if (perfil === 'geral') return null;
+  const candidatas = listarCategorias('despesa').filter((c) => perfilTributarioDaCategoria(c) === perfil);
+  return (candidatas.find((c) => c.padrao) ?? candidatas[0])?.id ?? null;
+}
+
+/** Muda o tipo de consumo de uma categoria de despesa (vale também para as padrão). */
+export function alterarPerfilTributario(id: number, perfil: PerfilTributarioId) {
+  const categoria = buscarCategoria(id);
+  if (!categoria || categoria.tipo !== 'despesa') throw new ErroValidacao('Esta categoria não existe mais.');
+  if (!perfilTributarioValido(perfil)) throw new ErroValidacao('Escolha um tipo de consumo válido.');
+  definirPerfilTributario(id, perfil);
 }
 
 /** Só exclui categorias sem lançamentos, para não perder histórico. */

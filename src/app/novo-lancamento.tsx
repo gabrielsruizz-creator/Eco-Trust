@@ -1,15 +1,59 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { FormularioLancamento } from '@/components/formulario-lancamento';
+import { FormularioLancamento, type SugestaoLancamento } from '@/components/formulario-lancamento';
+import { anexarNotaAoLancamento, retirarNotaPendente, verNotaPendente } from '@/services/nota-fiscal-service';
 import { adicionarTransacao } from '@/services/transacoes-service';
+import type { NovaTransacao } from '@/types/financas';
+import { dataValida } from '@/utils/datas';
+
+type Parametros = {
+  tipo?: string;
+  /** Vindos da leitura do QR Code da nota fiscal (tela ler-nota) */
+  chave?: string;
+  resumo?: string;
+  url?: string;
+  valor?: string;
+  tributos?: string;
+  data?: string;
+  descricao?: string;
+  categoria?: string;
+};
+
+function inteiro(texto?: string) {
+  const n = Number(texto);
+  return texto && Number.isInteger(n) && n >= 0 ? n : undefined;
+}
+
+/** Salva a despesa e, se ela veio de uma nota lida pelo QR Code, guarda a loja e os itens junto. */
+function salvar(dados: NovaTransacao) {
+  const id = adicionarTransacao(dados);
+  const nota = dados.chaveNota ? retirarNotaPendente(dados.chaveNota) : null;
+  if (nota) anexarNotaAoLancamento(id, nota);
+}
 
 export default function NovoLancamentoScreen() {
-  const { tipo } = useLocalSearchParams<{ tipo?: string }>();
+  const p = useLocalSearchParams<Parametros>();
+  const sugestao: SugestaoLancamento | undefined =
+    p.chave && /^\d{44}$/.test(p.chave)
+      ? {
+          chaveNota: p.chave,
+          resumoNota: p.resumo,
+          urlNota: p.url,
+          valorCentavos: inteiro(p.valor),
+          tributosCentavos: inteiro(p.tributos) ?? null,
+          data: p.data && dataValida(p.data) ? p.data : undefined,
+          descricao: p.descricao,
+          categoriaId: inteiro(p.categoria),
+          itensNota: verNotaPendente(p.chave)?.itens ?? [],
+        }
+      : undefined;
+
   return (
     <FormularioLancamento
-      titulo="Novo lançamento"
-      aoSalvar={adicionarTransacao}
-      tipoInicial={tipo === 'receita' ? 'receita' : 'despesa'}
+      titulo={sugestao ? 'Despesa da nota fiscal' : 'Novo lançamento'}
+      aoSalvar={salvar}
+      tipoInicial={p.tipo === 'receita' ? 'receita' : 'despesa'}
+      sugestao={sugestao}
     />
   );
 }

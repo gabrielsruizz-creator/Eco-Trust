@@ -4,6 +4,8 @@
  * Datas são strings "AAAA-MM-DD" e meses são "AAAA-MM", no fuso do celular.
  */
 
+import type { PerfilTributarioId } from '@/data/carga-tributaria';
+
 export type TipoTransacao = 'receita' | 'despesa';
 
 export type Categoria = {
@@ -12,6 +14,8 @@ export type Categoria = {
   tipo: TipoTransacao;
   /** Categoria criada pelo app (true) ou pelo usuário (false) */
   padrao: boolean;
+  /** Tipo de consumo para estimar os impostos (null = palpite pelo nome da categoria) */
+  perfilTributario: PerfilTributarioId | null;
 };
 
 export type Transacao = {
@@ -23,6 +27,12 @@ export type Transacao = {
   categoriaNome: string;
   data: string;
   recorrente: boolean;
+  /** Tributos informados na nota fiscal ("Valor aprox. dos tributos"). null = o app estima */
+  tributosCentavos: number | null;
+  /** Chave de acesso da NFC-e, quando a despesa veio do QR Code da nota */
+  chaveNota: string | null;
+  /** Entra nas deduções do IR (saúde/educação). null = o app decide pelo tipo e pela descrição */
+  dedutivelIr?: boolean | null;
   /** Momento em que foi registrado (ISO), quando disponível */
   criadoEm?: string;
 };
@@ -170,4 +180,40 @@ export type PerfilInvestidor = {
   temReserva: boolean;
   /** Data e hora em ISO */
   respondidoEm: string;
+};
+
+/**
+ * Impostos que não vêm das despesas: os da renda (INSS e IR) e os do patrimônio (IPVA e IPTU).
+ * Com salário bruto, INSS e IR são calculados pela tabela; sem ele, valem os valores informados.
+ */
+export type ImpostosFixos = {
+  salarioBrutoCentavos: number | null;
+  dependentes: number;
+  inssCentavos: number | null;
+  irCentavos: number | null;
+  ipvaAnualCentavos: number;
+  iptuAnualCentavos: number;
+  outrosMensalCentavos: number;
+};
+
+/** Um produto ou serviço da nota fiscal (como aparece na consulta da SEFAZ). */
+export type ItemNota = {
+  descricao: string;
+  codigo: string | null;
+  /** Pode ter casas decimais (ex.: 0,456 kg) */
+  quantidade: number;
+  unidade: string | null;
+  valorUnitarioCentavos: number | null;
+  valorTotalCentavos: number;
+};
+
+/** Nota fiscal guardada junto com um lançamento (lida pelo QR Code). */
+export type NotaSalva = {
+  chave: string;
+  /** Página de consulta na SEFAZ (.gov.br) */
+  url: string | null;
+  emitente: string | null;
+  itens: ItemNota[];
+  /** A nota saiu com o CPF do consumidor? null = a página não disse */
+  cpfNaNota?: boolean | null;
 };

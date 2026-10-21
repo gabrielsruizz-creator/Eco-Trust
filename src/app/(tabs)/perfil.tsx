@@ -13,6 +13,7 @@ import { Spacing } from '@/constants/theme';
 import {
   useAssinatura,
   useDadosPessoais,
+  useUltimoBackup,
   useJornada,
   usePerfilFinanceiro,
   usePerfilInvestidor,
@@ -25,6 +26,7 @@ import { apagarContaEDados, sair } from '@/services/conta-service';
 import { rotuloObjetivo } from '@/services/perfil-financeiro-service';
 import { DESCRICAO_PERFIL } from '@/services/perfil-investidor-service';
 import { camposPreenchidos, DIVIDAS, idadeDoPerfil, rotulo, TOTAL_CAMPOS_PESSOAIS } from '@/services/perfil-pessoal-service';
+import { tempoRelativo } from '@/utils/datas';
 import { formatarCentavos } from '@/utils/moeda';
 
 export default function PerfilScreen() {
@@ -37,6 +39,7 @@ export default function PerfilScreen() {
   const investidor = usePerfilInvestidor();
   const jornada = useJornada(conta?.criadoEm ?? null);
   const plus = useAssinatura().plano === 'plus';
+  const ultimoBackup = useUltimoBackup();
   const alcancadas = jornada.conquistas.filter((c) => c.alcancada).length;
   const anos = idadeDoPerfil(pessoal);
   const preenchidos = camposPreenchidos(pessoal);
@@ -163,6 +166,15 @@ export default function PerfilScreen() {
         />
       </Grupo>
 
+      <Grupo titulo="Aprender">
+        <LinhaLista
+          icone="aprender"
+          titulo="EcoTrust Academy"
+          subtitulo="Cursos, glossário e fórum da comunidade"
+          aoTocar={() => router.push('/academy')}
+        />
+      </Grupo>
+
       <View style={styles.grupo}>
         <ThemedText type="smallBold" accessibilityRole="header">
           Preferências
@@ -183,6 +195,13 @@ export default function PerfilScreen() {
               </ThemedText>
             ) : undefined
           }
+        />
+        <LinhaLista
+          separador
+          icone="escudo"
+          titulo="Backup dos dados"
+          subtitulo={ultimoBackup ? `Último: ${tempoRelativo(ultimoBackup)}` : 'Você ainda não fez backup'}
+          aoTocar={() => router.push('/backup')}
         />
         <LinhaLista separador icone="sair" titulo="Sair" aoTocar={sair} />
       </Grupo>

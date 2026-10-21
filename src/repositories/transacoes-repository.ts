@@ -10,12 +10,15 @@ type LinhaTransacao = {
   categoria_nome: string;
   data: string;
   recorrente: number;
+  tributos_centavos: number | null;
+  chave_nota: string | null;
+  dedutivel_ir: number | null;
   criado_em: string;
 };
 
 const SELECT_TRANSACAO = `
   SELECT t.id, t.tipo, t.valor_centavos, t.descricao, t.categoria_id, c.nome AS categoria_nome,
-         t.data, t.recorrente, t.criado_em
+         t.data, t.recorrente, t.tributos_centavos, t.chave_nota, t.dedutivel_ir, t.criado_em
   FROM transacoes t
   JOIN categorias c ON c.id = t.categoria_id`;
 
@@ -29,6 +32,9 @@ function paraTransacao(l: LinhaTransacao): Transacao {
     categoriaNome: l.categoria_nome,
     data: l.data,
     recorrente: l.recorrente === 1,
+    tributosCentavos: l.tributos_centavos,
+    chaveNota: l.chave_nota,
+    dedutivelIr: l.dedutivel_ir === null ? null : l.dedutivel_ir === 1,
     criadoEm: l.criado_em,
   };
 }
@@ -94,16 +100,24 @@ export function listarDiasComLancamentos(): string[] {
     .map((l) => l.data);
 }
 
+/** Lançamento que já usa esta chave de NFC-e (para não registrar a mesma nota duas vezes). */
+export function buscarTransacaoPorChaveNota(chave: string): Transacao | null {
+  const linha = getBanco().getFirstSync<LinhaTransacao>(`${SELECT_TRANSACAO} WHERE t.chave_nota = ?`, chave);
+  return linha ? paraTransacao(linha) : null;
+}
+
 export function criarTransacao(nova: NovaTransacao): number {
   const resultado = getBanco().runSync(
-    `INSERT INTO transacoes (tipo, valor_centavos, descricao, categoria_id, data, recorrente, criado_em)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO transacoes (tipo, valor_centavos, descricao, categoria_id, data, recorrente, tributos_centavos, chave_nota, criado_em)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     nova.tipo,
     nova.valorCentavos,
     nova.descricao,
     nova.categoriaId,
     nova.data,
     nova.recorrente ? 1 : 0,
+    nova.tributosCentavos,
+    nova.chaveNota,
     new Date().toISOString(),
   );
   notificarMudanca();
@@ -114,7 +128,7 @@ export function criarTransacao(nova: NovaTransacao): number {
 export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
   const resultado = getBanco().runSync(
     `UPDATE transacoes
-     SET tipo = ?, valor_centavos = ?, descricao = ?, categoria_id = ?, data = ?, recorrente = ?
+     SET tipo = ?, valor_centavos = ?, descricao = ?, categoria_id = ?, data = ?, recorrente = ?, tributos_centavos = ?, chave_nota = ?
      WHERE id = ?`,
     dados.tipo,
     dados.valorCentavos,
@@ -122,10 +136,30 @@ export function atualizarTransacao(id: number, dados: NovaTransacao): boolean {
     dados.categoriaId,
     dados.data,
     dados.recorrente ? 1 : 0,
+    dados.tributosCentavos,
+    dados.chaveNota,
     id,
   );
   notificarMudanca();
   return resultado.changes > 0;
+}
+
+/** Lançamentos de um período (AAAA-MM-DD, inclusive), do mais antigo ao mais novo. */
+export function listarTransacoesEntre(inicio: string, fim: string, tipo: TipoTransacao): Transacao[] {
+  return getBanco()
+    .getAllSync<LinhaTransacao>(
+      `${SELECT_TRANSACAO} WHERE t.data BETWEEN ? AND ? AND t.tipo = ? ORDER BY t.data, t.id`,
+      inicio,
+      fim,
+      tipo,
+    )
+    .map(paraTransacao);
+}
+
+/** Marca (ou desmarca, ou volta ao automático com null) uma despesa como dedutível no IR. */
+export function definirDedutivelIr(id: number, dedutivel: boolean | null) {
+  getBanco().runSync('UPDATE transacoes SET dedutivel_ir = ? WHERE id = ?', dedutivel === null ? null : dedutivel ? 1 : 0, id);
+  notificarMudanca();
 }
 
 export function removerTransacao(id: number) {
