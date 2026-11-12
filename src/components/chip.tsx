@@ -2,6 +2,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useSuperficie } from '@/components/tela';
 import { useTheme } from '@/hooks/use-theme';
 import { vibrarSelecao } from '@/utils/vibracao';
 
@@ -14,6 +15,7 @@ type Props = {
 /** Opção selecionável em formato de "pílula". Use dentro de uma View com accessibilityRole="radiogroup". */
 export function Chip({ texto, ativo, aoTocar }: Props) {
   const theme = useTheme();
+  const superficie = useSuperficie();
   return (
     <Pressable
       onPress={() => {
@@ -24,13 +26,7 @@ export function Chip({ texto, ativo, aoTocar }: Props) {
       accessibilityState={{ checked: ativo }}
       style={({ pressed }) => [
         styles.chip,
-        {
-          backgroundColor: ativo ? theme.accent : theme.backgroundElement,
-          borderColor: ativo ? theme.accent : theme.border,
-        },
-        ativo && {
-          experimental_backgroundImage: `linear-gradient(90deg, ${theme.gradienteInicio}, ${theme.gradienteFim})`,
-        },
+        ativo ? { backgroundColor: theme.accent, borderColor: theme.accent } : superficie,
         pressed && styles.pressionado,
       ]}>
       <ThemedText type="small" style={ativo && { color: theme.onAccent }}>

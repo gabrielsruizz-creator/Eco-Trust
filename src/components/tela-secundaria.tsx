@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FundoDaTela } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -20,6 +21,7 @@ type Props = {
 export function TelaSecundaria({ titulo, children, rodape, textoVoltar = '‹ Voltar' }: Props) {
   return (
     <ThemedView style={styles.container}>
+      <FundoDaTela />
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.topo}>

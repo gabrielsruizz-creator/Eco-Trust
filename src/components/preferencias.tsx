@@ -5,6 +5,7 @@ import { Chip } from '@/components/chip';
 import { Cartao } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useAparencia } from '@/hooks/use-aparencia';
 import { usePreferencias } from '@/hooks/use-dados';
 import { useConta } from '@/hooks/use-sessao';
 import { useTheme } from '@/hooks/use-theme';
@@ -22,6 +23,7 @@ const TEMAS: { valor: Tema; rotulo: string }[] = [
 export function CartaoPreferencias() {
   const theme = useTheme();
   const preferencias = usePreferencias();
+  const { vidroNativoDisponivel } = useAparencia();
   const conta = useConta();
   const [biometriaOk, setBiometriaOk] = useState(false);
   const [diaTexto, setDiaTexto] = useState(preferencias.diaPagamento ? String(preferencias.diaPagamento) : '');
@@ -63,6 +65,24 @@ export function CartaoPreferencias() {
         {TEMAS.map((t) => (
           <Chip key={t.valor} texto={t.rotulo} ativo={preferencias.tema === t.valor} aoTocar={() => atualizar({ tema: t.valor })} />
         ))}
+      </View>
+      <View style={styles.linha}>
+        <View style={styles.flex}>
+          <ThemedText type="small">Efeito vidro (Liquid Glass)</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {preferencias.vidro
+              ? vidroNativoDisponivel
+                ? 'Cartões de vidro do iOS. Desligue para cartões sólidos.'
+                : 'Vidro simulado (o efeito nativo é do iOS 26 em diante). Desligue para cartões sólidos.'
+              : 'Cartões sólidos, estilo papel. Ligue para ver os cartões de vidro.'}
+          </ThemedText>
+        </View>
+        <Switch
+          value={preferencias.vidro}
+          onValueChange={(vidro) => atualizar({ vidro })}
+          trackColor={{ true: theme.positive }}
+          accessibilityLabel="Efeito vidro (Liquid Glass)"
+        />
       </View>
 
       <View style={[styles.separador, { borderTopColor: theme.backgroundSelected }]} />

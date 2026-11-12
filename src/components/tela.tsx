@@ -1,3 +1,4 @@
+import { GlassView } from 'expo-glass-effect';
 import type { ReactNode } from 'react';
 import {
   Pressable,
@@ -13,6 +14,8 @@ import { Icone, type NomeIcone } from '@/components/icone';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAparencia } from '@/hooks/use-aparencia';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type AcaoTopo = { icone: NomeIcone; rotulo: string; aoTocar: () => void };
@@ -34,6 +37,7 @@ export function Tela({
 }) {
   return (
     <ThemedView style={styles.container}>
+      <FundoDaTela />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
           {topo ?? (
@@ -63,6 +67,7 @@ export function Tela({
 /** Botão redondo só com ícone (ações do topo). */
 export function BotaoIcone({ icone, rotulo, aoTocar }: AcaoTopo) {
   const theme = useTheme();
+  const superficie = useSuperficie();
   return (
     <Pressable
       onPress={aoTocar}
@@ -71,25 +76,69 @@ export function BotaoIcone({ icone, rotulo, aoTocar }: AcaoTopo) {
       hitSlop={6}
       style={({ pressed }) => [
         styles.botaoIcone,
-        { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement, borderColor: theme.border },
+        superficie,
+        pressed && { backgroundColor: theme.backgroundSelected },
       ]}>
       <Icone nome={icone} cor={theme.text} tamanho={20} />
     </Pressable>
   );
 }
 
-/** Cartão com efeito de vidro: fundo do elemento, borda fina e um leve brilho no topo. */
+/**
+ * Fundo das telas. No modo vidro ganha manchas suaves de cor, que dão ao vidro o que refratar
+ * (vidro sobre fundo liso parece só um cartão cinza). No modo papel, fica liso.
+ */
+export function FundoDaTela() {
+  const theme = useTheme();
+  const { vidro } = useAparencia();
+  if (!vidro) return null;
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          experimental_backgroundImage: [
+            `radial-gradient(circle at 12% 8%, ${theme.fundoMancha1} 0%, transparent 42%)`,
+            `radial-gradient(circle at 95% 32%, ${theme.fundoMancha2} 0%, transparent 38%)`,
+            `radial-gradient(circle at 20% 78%, ${theme.fundoMancha3} 0%, transparent 40%)`,
+          ].join(', '),
+        },
+      ]}
+    />
+  );
+}
+
+/**
+ * Cartão base do app, em dois estilos (Preferências > Aparência):
+ * - vidro: Liquid Glass nativo no iOS 26+; nos demais, vidro simulado (translúcido, borda clara e
+ *   um brilho no topo);
+ * - papel: sólido, com borda fina, no estilo editorial.
+ */
 export function Cartao({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const theme = useTheme();
+  const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
+  const { vidro, nativo } = useAparencia();
+
+  if (nativo) {
+    return (
+      <GlassView glassEffectStyle="regular" colorScheme={esquema} style={[styles.cartao, styles.cartaoVidroNativo, style]}>
+        {children}
+      </GlassView>
+    );
+  }
   return (
     <View
       style={[
         styles.cartao,
-        {
-          backgroundColor: theme.backgroundElement,
-          borderColor: theme.border,
-          experimental_backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0))',
-        },
+        vidro
+          ? {
+              backgroundColor: theme.vidro,
+              borderColor: theme.vidroBorda,
+              experimental_backgroundImage: `linear-gradient(180deg, ${theme.vidroBrilho}, transparent 55%)`,
+              boxShadow: `0 8px 24px ${theme.brilho}`,
+            }
+          : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
         style,
       ]}>
       {children}
@@ -97,11 +146,20 @@ export function Cartao({ children, style }: { children: ReactNode; style?: ViewS
   );
 }
 
-/** Fundo em degradê da marca (cartão de saldo, botões principais, barras). */
+/** Fundo e borda de superfícies pequenas (botões redondos, chips, seletores) no estilo escolhido. */
+export function useSuperficie(): ViewStyle {
+  const theme = useTheme();
+  const { vidro } = useAparencia();
+  return vidro
+    ? { backgroundColor: theme.vidro, borderColor: theme.vidroBorda }
+    : { backgroundColor: theme.backgroundElement, borderColor: theme.border };
+}
+
+/** Fundo dos cartões de destaque (saldo, Impostômetro): tinta, com texto claro nos dois temas. */
 export function useDegrade(angulo = 135): ViewStyle {
   const theme = useTheme();
   return {
-    backgroundColor: theme.accent,
+    backgroundColor: theme.heroi,
     experimental_backgroundImage: `linear-gradient(${angulo}deg, ${theme.gradienteInicio}, ${theme.gradienteFim})`,
   };
 }
@@ -116,7 +174,6 @@ type BotaoProps = PressableProps & {
 
 export function Botao({ texto, variante = 'primario', selecionado, disabled, style, icone, ...rest }: BotaoProps) {
   const theme = useTheme();
-  const degrade = useDegrade(90);
   const primario = variante === 'primario' || selecionado;
   const perigo = variante === 'perigo';
   const corTexto = primario ? theme.onAccent : perigo ? theme.negative : theme.text;
@@ -129,7 +186,7 @@ export function Botao({ texto, variante = 'primario', selecionado, disabled, sty
       style={(state) => [
         styles.botao,
         primario
-          ? [degrade, !disabled && { boxShadow: `0 6px 18px ${theme.brilho}` }]
+          ? [{ backgroundColor: theme.accent }, !disabled && { boxShadow: `0 6px 18px ${theme.brilho}` }]
           : perigo
             ? { backgroundColor: theme.negativeSoft }
             : { backgroundColor: theme.backgroundSelected, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth },
@@ -158,11 +215,9 @@ export function Segmentado<T extends string>({
   rotulo: string;
 }) {
   const theme = useTheme();
+  const superficie = useSuperficie();
   return (
-    <View
-      accessibilityRole="radiogroup"
-      accessibilityLabel={rotulo}
-      style={[styles.segmentado, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+    <View accessibilityRole="radiogroup" accessibilityLabel={rotulo} style={[styles.segmentado, superficie]}>
       {opcoes.map((o) => {
         const ativo = o.valor === valor;
         return (
@@ -299,9 +354,14 @@ const styles = StyleSheet.create({
   },
   cartao: {
     padding: Spacing.three,
-    borderRadius: Spacing.four - Spacing.one,
+    borderRadius: Spacing.four,
     borderWidth: StyleSheet.hairlineWidth,
+    borderCurve: 'continuous',
     gap: Spacing.two,
+  },
+  cartaoVidroNativo: {
+    borderWidth: 0,
+    overflow: 'hidden',
   },
   botao: {
     flexDirection: 'row',

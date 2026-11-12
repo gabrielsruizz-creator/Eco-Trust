@@ -6,7 +6,7 @@ import { BarraProgresso } from '@/components/barra-progresso';
 import { Icone, type NomeIcone } from '@/components/icone';
 import { CartaoSaude } from '@/components/saude-financeira';
 import { SeloNivel } from '@/components/selo-nivel';
-import { Cartao, IconeCirculo, LinhaLista, Tela, useDegrade } from '@/components/tela';
+import { Cartao, IconeCirculo, LinhaLista, Tela, useDegrade, useSuperficie } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
 import { useDadosPessoais, useDashboard, useImpostometro, useJornada, usePerfilFinanceiro } from '@/hooks/use-dados';
@@ -253,13 +253,14 @@ export default function InicioScreen() {
 
 function AcaoRapida({ icone, texto, destino }: { icone: NomeIcone; texto: string; destino: Href }) {
   const theme = useTheme();
+  const superficie = useSuperficie();
   return (
     <Pressable
       onPress={() => router.push(destino)}
       accessibilityRole="button"
       accessibilityLabel={texto}
       style={({ pressed }) => [styles.acao, pressed && styles.pressionado]}>
-      <View style={[styles.acaoIcone, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <View style={[styles.acaoIcone, superficie]}>
         <Icone nome={icone} cor={theme.text} tamanho={22} />
       </View>
       <ThemedText type="small" themeColor="textSecondary">

@@ -136,7 +136,7 @@ function LinhaDespesa({ item, separador }: { item: DespesaDedutivel; separador: 
       <Switch
         value={item.dedutivel}
         onValueChange={(v) => marcarDedutivel(t.id, v)}
-        trackColor={{ true: theme.accent }}
+        trackColor={{ true: theme.positive }}
         accessibilityLabel={`${titulo}, ${formatarCentavos(t.valorCentavos)}: entra na declaração`}
       />
     </View>

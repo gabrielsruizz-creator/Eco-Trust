@@ -1,15 +1,18 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { ICONES } from '@/components/icone';
+import { useAparencia } from '@/hooks/use-aparencia';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Abas: Início · Transações · Impostos · Metas · Perfil. (A Academy abre pelo Início e pelo Perfil.) */
 export default function AppTabs() {
   const theme = useTheme();
+  // Com o vidro ligado, a barra fica com o material do sistema (Liquid Glass no iOS 26+).
+  const { vidro } = useAparencia();
 
   return (
     <NativeTabs
-      backgroundColor={theme.background}
+      backgroundColor={vidro ? undefined : theme.background}
       indicatorColor={theme.accentSoft}
       iconColor={{ default: theme.textSecondary, selected: theme.accentText }}
       labelStyle={{ default: { color: theme.textSecondary }, selected: { color: theme.text } }}>

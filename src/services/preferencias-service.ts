@@ -14,6 +14,8 @@ export type Tema = 'sistema' | 'claro' | 'escuro';
 
 export type Preferencias = {
   tema: Tema;
+  /** Cartões de vidro (Liquid Glass) em vez de cartões sólidos de "papel" */
+  vidro: boolean;
   /** Dia do mês em que o salário cai (1 a 31), ou null */
   diaPagamento: number | null;
   lembreteDiario: boolean;
@@ -26,6 +28,7 @@ export const HORAS_LEMBRETE = [8, 12, 18, 21];
 
 const PADRAO: Preferencias = {
   tema: 'escuro',
+  vidro: true,
   diaPagamento: null,
   lembreteDiario: false,
   horaLembrete: 21,
@@ -44,6 +47,7 @@ export function obterPreferencias(): Preferencias {
 
 export function validarPreferencias(p: Preferencias): Preferencias {
   if (!['sistema', 'claro', 'escuro'].includes(p.tema)) throw new ErroValidacao('Tema inválido.');
+  if (typeof p.vidro !== 'boolean') throw new ErroValidacao('Opção de vidro inválida.');
   if (p.diaPagamento !== null && (!Number.isInteger(p.diaPagamento) || p.diaPagamento < 1 || p.diaPagamento > 31)) {
     throw new ErroValidacao('O dia do pagamento deve ser de 1 a 31.');
   }

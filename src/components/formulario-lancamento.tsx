@@ -331,7 +331,7 @@ export function FormularioLancamento({ titulo, inicial, aoSalvar, tipoInicial = 
                 <Switch
                   value={recorrente}
                   onValueChange={setRecorrente}
-                  trackColor={{ true: theme.accent }}
+                  trackColor={{ true: theme.positive }}
                   accessibilityLabel="Despesa recorrente"
                 />
               </View>

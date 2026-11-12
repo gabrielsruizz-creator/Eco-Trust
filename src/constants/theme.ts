@@ -1,76 +1,94 @@
 /**
  * Cores, espaçamentos e tipografia do EcoTrust (tema escuro padrão e claro opcional).
+ * Os cartões podem ser de "vidro" (Liquid Glass) ou de "papel" (sólidos): escolha nas Preferências.
  */
 
 import { Platform } from 'react-native';
 
 export const Colors = {
-  // Paleta "Noite EcoTrust": azul-marinho profundo + degradê roxo → azul (referência de design).
-  // O app abre no escuro; o claro é opcional nas Preferências. Contrastes conferidos (WCAG AA)
-  // em teste automático: texto, textSecondary, accentText e onAccent ≥ 4,5:1 nos dois temas.
+  // Paleta "Papel e tinta": creme e preto no claro, grafite e creme no escuro, poucos tons e sem
+  // degradês coloridos (referência: interfaces editoriais em preto e branco + Liquid Glass da Apple).
+  // A cor vem dos gráficos e das situações (positivo/negativo); o resto é tinta sobre papel.
+  // Contrastes (WCAG AA): text, textSecondary, accentText e onAccent ≥ 4,5:1 nos dois temas.
   light: {
-    text: '#0B1230',
-    background: '#F5F6FB',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#E9ECF7',
-    border: '#E1E5F2',
-    textSecondary: '#5A6385',
-    /** Preenchimento de botões e elementos ativos */
-    accent: '#5B3FE0',
-    /** Texto/ícone sobre o accent e sobre o degradê */
-    onAccent: '#FFFFFF',
+    text: '#16150F',
+    background: '#F3EEE4',
+    backgroundElement: '#FFFDF8',
+    backgroundSelected: '#E9E2D4',
+    border: '#E2DACB',
+    textSecondary: '#6B6458',
+    /** Preenchimento de botões e elementos ativos: tinta */
+    accent: '#16150F',
+    /** Texto/ícone sobre o accent */
+    onAccent: '#FFFDF8',
     /** Links e textos de destaque */
-    accentText: '#5B3FE0',
-    /** Cor da marca para elementos decorativos (anéis, gráficos) */
-    brand: '#6D4AFF',
-    positive: '#1A7F4B',
-    negative: '#C93636',
-    accentSoft: '#ECE8FF',
-    positiveSoft: '#E5F4EC',
-    negativeSoft: '#FBEAEA',
-    /** Degradê da marca (botões principais, cartão de saldo, barras de progresso) */
-    gradienteInicio: '#6D4AFF',
-    gradienteFim: '#3A5CF5',
-    /** Brilho atrás de elementos de destaque */
-    brilho: 'rgba(109, 74, 255, 0.22)',
+    accentText: '#16150F',
+    /** Elementos decorativos (anéis, ícones em círculo) */
+    brand: '#16150F',
+    positive: '#2E7A4B',
+    negative: '#B23F2C',
+    accentSoft: '#E9E2D4',
+    positiveSoft: '#E3EFE4',
+    negativeSoft: '#F6E3DD',
+    /** Cartões de destaque (saldo, Impostômetro): tinta com texto claro, nos dois temas */
+    heroi: '#16150F',
+    gradienteInicio: '#16150F',
+    gradienteFim: '#2A2820',
+    /** Sombra suave atrás de elementos de destaque */
+    brilho: 'rgba(22, 21, 15, 0.14)',
+    /** Vidro (Liquid Glass simulado onde o efeito nativo não existe) */
+    vidro: 'rgba(255, 253, 248, 0.58)',
+    vidroBorda: 'rgba(255, 255, 255, 0.85)',
+    vidroBrilho: 'rgba(255, 255, 255, 0.55)',
+    /** Manchas de cor do fundo, que dão o que o vidro refletir */
+    fundoMancha1: 'rgba(214, 186, 140, 0.55)',
+    fundoMancha2: 'rgba(160, 182, 160, 0.45)',
+    fundoMancha3: 'rgba(222, 160, 136, 0.35)',
     // Gráficos: cores de situação (sempre com ícone + texto, nunca sozinhas) e linhas finas
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#E3E6F2',
-    chartBaseline: '#C5CADF',
+    chartGrid: '#E4DCCC',
+    chartBaseline: '#C9BFAD',
   },
   dark: {
-    text: '#F4F6FF',
-    background: '#070B1A',
-    backgroundElement: '#111833',
-    backgroundSelected: '#1B2448',
-    border: '#242E57',
-    textSecondary: '#9AA3C7',
-    accent: '#6D4AFF',
-    onAccent: '#FFFFFF',
-    accentText: '#A99BFF',
-    brand: '#8B6CFF',
-    positive: '#34D399',
-    negative: '#F87171',
-    accentSoft: '#1E1A4A',
-    positiveSoft: '#0F2A24',
-    negativeSoft: '#2E1620',
-    gradienteInicio: '#7454FA',
-    gradienteFim: '#3A5CF5',
-    brilho: 'rgba(123, 92, 255, 0.45)',
+    text: '#F3EEE4',
+    background: '#0F0F0D',
+    backgroundElement: '#1B1A17',
+    backgroundSelected: '#2A2925',
+    border: '#2E2C27',
+    textSecondary: '#A9A293',
+    accent: '#F3EEE4',
+    onAccent: '#16150F',
+    accentText: '#F3EEE4',
+    brand: '#F3EEE4',
+    positive: '#6FCF97',
+    negative: '#F0907D',
+    accentSoft: '#2A2925',
+    positiveSoft: '#14271C',
+    negativeSoft: '#2E1915',
+    heroi: '#26241F',
+    gradienteInicio: '#26241F',
+    gradienteFim: '#34312A',
+    brilho: 'rgba(0, 0, 0, 0.45)',
+    vidro: 'rgba(40, 38, 33, 0.55)',
+    vidroBorda: 'rgba(255, 255, 255, 0.14)',
+    vidroBrilho: 'rgba(255, 255, 255, 0.08)',
+    fundoMancha1: 'rgba(150, 118, 70, 0.40)',
+    fundoMancha2: 'rgba(70, 104, 84, 0.38)',
+    fundoMancha3: 'rgba(140, 74, 58, 0.30)',
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#1F2850',
-    chartBaseline: '#2E3866',
+    chartGrid: '#2B2925',
+    chartBaseline: '#423F37',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /** Cores de fundo do avatar (todas com bom contraste para texto branco). */
-export const AvatarColors = ['#5B3FE0', '#2a5fd6', '#1a7f4b', '#c2410c', '#be185d', '#0f766e'] as const;
+export const AvatarColors = ['#16150F', '#3D5A80', '#2E7A4B', '#A0522D', '#8C3B5A', '#2F6F6A'] as const;
 
 /**
  * Cores para séries de gráficos (identidade de cada categoria), sempre nesta ordem.

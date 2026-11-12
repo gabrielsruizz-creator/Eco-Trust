@@ -25,8 +25,6 @@ export function BarraProgresso({ percentual, cor, altura = 8, rotuloAcessivel }:
         style={[
           styles.preenchimento,
           { width: `${limitado}%`, borderRadius: altura / 2, backgroundColor: cor ?? theme.accent },
-          // Sem cor definida, usa o degradê da marca.
-          !cor && { experimental_backgroundImage: `linear-gradient(90deg, ${theme.gradienteInicio}, ${theme.gradienteFim})` },
         ]}
       />
     </View>

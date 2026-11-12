@@ -109,7 +109,7 @@ export default function CompartilharImpostosScreen() {
         )}
 
         <View style={styles.rodapeCartao}>
-          <LogoEcoTrust tamanho={20} />
+          <LogoEcoTrust tamanho={20} cor="#F3EEE4" />
           <ThemedText type="smallBold" style={styles.branco}>
             EcoTrust · seu impostômetro pessoal
           </ThemedText>
@@ -126,7 +126,7 @@ export default function CompartilharImpostosScreen() {
         <Switch
           value={mostrarValores}
           onValueChange={setMostrarValores}
-          trackColor={{ true: theme.accent }}
+          trackColor={{ true: theme.positive }}
           accessibilityLabel="Mostrar valores em reais na imagem"
         />
       </View>
@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.two,
     overflow: 'hidden',
-    backgroundColor: '#5B3FE0',
-    experimental_backgroundImage: 'linear-gradient(135deg, #7454FA, #3A5CF5)',
+    backgroundColor: '#16150F',
+    experimental_backgroundImage: 'linear-gradient(135deg, #16150F, #2F2C24)',
   },
   decoracao: {
     position: 'absolute',
