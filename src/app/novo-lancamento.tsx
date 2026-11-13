@@ -33,8 +33,10 @@ function salvar(dados: NovaTransacao) {
 
 export default function NovoLancamentoScreen() {
   const p = useLocalSearchParams<Parametros>();
-  const sugestao: SugestaoLancamento | undefined =
-    p.chave && /^\d{44}$/.test(p.chave)
+  const daNota = !!p.chave && /^\d{44}$/.test(p.chave);
+  const sugestao: SugestaoLancamento | undefined = !daNota && inteiro(p.categoria) !== undefined
+    ? { categoriaId: inteiro(p.categoria) }
+    : daNota
       ? {
           chaveNota: p.chave,
           resumoNota: p.resumo,
@@ -44,13 +46,13 @@ export default function NovoLancamentoScreen() {
           data: p.data && dataValida(p.data) ? p.data : undefined,
           descricao: p.descricao,
           categoriaId: inteiro(p.categoria),
-          itensNota: verNotaPendente(p.chave)?.itens ?? [],
+          itensNota: verNotaPendente(p.chave ?? '')?.itens ?? [],
         }
       : undefined;
 
   return (
     <FormularioLancamento
-      titulo={sugestao ? 'Despesa da nota fiscal' : 'Novo lançamento'}
+      titulo={daNota ? 'Despesa da nota fiscal' : 'Novo lançamento'}
       aoSalvar={salvar}
       tipoInicial={p.tipo === 'receita' ? 'receita' : 'despesa'}
       sugestao={sugestao}

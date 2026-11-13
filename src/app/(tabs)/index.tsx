@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { BarraProgresso } from '@/components/barra-progresso';
 import { Icone, type NomeIcone } from '@/components/icone';
 import { Minigrafico } from '@/components/minigrafico';
 import { PetEco } from '@/components/pet-eco';
@@ -56,11 +57,7 @@ export default function InicioScreen() {
   const [ano, m] = mes.split('-').map(Number);
   const diasRestantes = diasEntre(hoje(), `${mes}-${String(new Date(ano, m, 0).getDate()).padStart(2, '0')}`);
 
-  const consumo = impostos.impostosCentavos;
-  const renda = impostos.fixos ? impostos.fixos.inssCentavos + impostos.fixos.irCentavos : 0;
-  const patrimonio = impostos.fixos
-    ? impostos.fixos.ipvaCentavos + impostos.fixos.iptuCentavos + impostos.fixos.outrosCentavos
-    : 0;
+  const saldo = dashboard.saldoDisponivelCentavos;
 
   const topo = (
     <View style={styles.topo}>
@@ -86,32 +83,58 @@ export default function InicioScreen() {
 
   return (
     <Tela titulo="Início" topo={topo}>
-      {/* Impostos do mês */}
-      <Pressable
-        onPress={() => router.navigate('/impostos')}
-        accessibilityRole="button"
-        accessibilityLabel={`Impostos pagos em ${nomeMes}: ${formatarCentavos(impostos.cargaTotalCentavos)}${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% dos gastos` : ''}. Abrir o Impostômetro`}
-        style={({ pressed }) => pressed && styles.pressionado}>
-        <Cartao>
+      {/* Saldo, entradas e saídas do mês — e, junto, quanto das saídas foi imposto */}
+      <Cartao>
+        <View
+          accessible
+          accessibilityLabel={`Saldo disponível: ${formatarCentavos(saldo)}. Em ${nomeMes}: entradas ${formatarCentavos(dashboard.receitasCentavos)}, saídas ${formatarCentavos(dashboard.despesasCentavos)}.`}>
           <View style={styles.linhaTopo}>
             <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
-              Impostos pagos · {nomeMes}
+              Saldo disponível
             </ThemedText>
-            <Minigrafico valores={historico.map((h) => h.centavos)} />
-          </View>
-          <View style={styles.linhaValor}>
-            <Valor centavos={impostos.cargaTotalCentavos} style={styles.valorGrande} />
-            {impostos.percentualDosGastos !== null && (
-              <Selo texto={`${impostos.percentualDosGastos.toLocaleString('pt-BR')}% dos gastos`} tom="rosa" />
+            {dashboard.variacaoDespesas !== null && (
+              <Selo
+                texto={`Saídas ${dashboard.variacaoDespesas > 0 ? '+' : ''}${dashboard.variacaoDespesas}% vs mês passado`}
+                tom={dashboard.variacaoDespesas > 0 ? 'ambar' : 'verde'}
+              />
             )}
           </View>
+          <Valor
+            centavos={saldo}
+            sinal={saldo < 0 ? '−' : undefined}
+            style={[styles.valorGrande, saldo < 0 ? { color: theme.negative } : {}]}
+          />
           <View style={[styles.tres, { borderTopColor: theme.border }]}>
-            <Parte rotulo="Consumo" cor={theme.text} centavos={consumo} />
-            <Parte rotulo="Renda" cor={theme.brand} centavos={renda} separador />
-            <Parte rotulo="Patrimônio" cor={theme.warning} centavos={patrimonio} separador />
+            <Parte rotulo={`Entradas · ${nomeMes}`} cor={theme.positive} centavos={dashboard.receitasCentavos} />
+            <Parte rotulo={`Saídas · ${nomeMes}`} cor={theme.text} centavos={dashboard.despesasCentavos} separador />
           </View>
-        </Cartao>
-      </Pressable>
+        </View>
+
+        {/* Impostômetro: parte das saídas que foi imposto */}
+        <Pressable
+          onPress={() => router.push('/impostos')}
+          accessibilityRole="button"
+          accessibilityLabel={`Impostômetro: ${formatarCentavos(impostos.cargaTotalCentavos)} em impostos em ${nomeMes}${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% das suas despesas` : ''}. Ver detalhes`}
+          style={({ pressed }) => [styles.faixaImpostos, { backgroundColor: theme.accentSoft }, pressed && styles.pressionado]}>
+          <View style={styles.linhaTopo}>
+            <Icone nome="impostos" cor={theme.accentText} tamanho={16} />
+            <ThemedText type="small" style={styles.flex} numberOfLines={1}>
+              <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+                {formatarCentavos(impostos.cargaTotalCentavos)}
+              </ThemedText>
+              {' em impostos'}
+              {impostos.percentualDosGastos !== null
+                ? ` · ${impostos.percentualDosGastos.toLocaleString('pt-BR')}% das saídas`
+                : ''}
+            </ThemedText>
+            <Minigrafico valores={historico.map((h) => h.centavos)} largura={56} altura={22} />
+            <Icone nome="avancar" cor={theme.textSecondary} tamanho={14} />
+          </View>
+          {impostos.percentualDosGastos !== null && (
+            <BarraProgresso percentual={impostos.percentualDosGastos} cor={theme.brand} altura={5} />
+          )}
+        </Pressable>
+      </Cartao>
 
       {/* Ações */}
       <Cartao style={styles.acoes}>
@@ -356,6 +379,12 @@ const styles = StyleSheet.create({
   valorParte: {
     fontSize: 16,
     lineHeight: 22,
+  },
+  faixaImpostos: {
+    borderRadius: 14,
+    padding: Spacing.two + Spacing.one,
+    gap: Spacing.two,
+    marginTop: Spacing.one,
   },
   acoes: {
     flexDirection: 'row',

@@ -1,4 +1,5 @@
 import { GlassView } from 'expo-glass-effect';
+import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import {
   Pressable,
@@ -26,8 +27,11 @@ export function Tela({
   subtitulo,
   acoes,
   topo,
+  voltar,
   children,
 }: {
+  /** Mostra "‹ Voltar" acima do título (para telas abertas por cima das abas) */
+  voltar?: boolean;
   titulo: string;
   subtitulo?: string;
   acoes?: AcaoTopo[];
@@ -40,6 +44,13 @@ export function Tela({
       <FundoDaTela />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
+          {voltar && (
+            <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.voltar}>
+              <ThemedText type="smallBold" themeColor="textSecondary">
+                ‹ Voltar
+              </ThemedText>
+            </Pressable>
+          )}
           {topo ?? (
             <View style={styles.cabecalho}>
               <View style={styles.flex}>
@@ -338,6 +349,12 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     paddingBottom: BottomTabInset + Spacing.four,
     gap: Spacing.three,
+  },
+  voltar: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    justifyContent: 'center',
+    marginBottom: -Spacing.two,
   },
   cabecalho: {
     flexDirection: 'row',

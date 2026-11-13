@@ -27,7 +27,7 @@ function numero(n: number) {
   return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 }
 
-/** Aba Impostos: o Impostômetro pessoal (quanto do que você gastou no mês foi imposto). */
+/** Impostômetro pessoal (aberto pelo Início) (quanto do que você gastou no mês foi imposto). */
 export default function ImpostosScreen() {
   const theme = useTheme();
   const degrade = useDegrade(135);
@@ -41,6 +41,7 @@ export default function ImpostosScreen() {
 
   return (
     <Tela
+      voltar
       titulo="Impostômetro"
       subtitulo="Quanto do seu dinheiro vai para o governo"
       acoes={[

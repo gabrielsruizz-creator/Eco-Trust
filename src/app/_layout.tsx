@@ -97,6 +97,7 @@ export default function RootLayout() {
           <Stack.Screen name="saude-financeira" />
           <Stack.Screen name="insights" />
           <Stack.Screen name="orcamento" />
+          <Stack.Screen name="impostos" />
           <Stack.Screen name="ajustar-impostos" />
           <Stack.Screen name="impostos-renda" options={{ presentation: 'modal' }} />
           <Stack.Screen name="assinatura" options={{ presentation: 'modal' }} />

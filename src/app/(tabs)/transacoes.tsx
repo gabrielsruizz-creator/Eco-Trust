@@ -184,7 +184,7 @@ export default function TransacoesScreen() {
         </ThemedText>
         {impostosFiltrados > 0 && (
           <Pressable
-            onPress={() => router.navigate('/impostos')}
+            onPress={() => router.push('/impostos')}
             accessibilityRole="link"
             accessibilityLabel={`${formatarCentavos(impostosFiltrados)} em impostos nessas despesas. Abrir o Impostômetro`}
             style={({ pressed }) => [styles.linhaImpostos, pressed && styles.pressionado]}>

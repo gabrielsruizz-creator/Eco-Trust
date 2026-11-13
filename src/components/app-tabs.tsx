@@ -4,7 +4,7 @@ import { ICONES } from '@/components/icone';
 import { useAparencia } from '@/hooks/use-aparencia';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Abas: Início · Transações · Impostos · Metas · Perfil. (A Academy abre pelo Início e pelo Perfil.) */
+/** Abas: Início · Transações · Adicionar (+) · Metas · Perfil. Impostômetro e Academy abrem pelo Início. */
 export default function AppTabs() {
   const theme = useTheme();
   // Com o vidro ligado, a barra fica com o material do sistema (Liquid Glass no iOS 26+).
@@ -26,9 +26,9 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf={ICONES.transacoes.ios} md={ICONES.transacoes.android} />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="impostos">
-        <NativeTabs.Trigger.Label>Impostos</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={ICONES.impostos.ios} md={ICONES.impostos.android} />
+      <NativeTabs.Trigger name="adicionar">
+        <NativeTabs.Trigger.Label>Adicionar</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={ICONES.adicionar.ios} md={ICONES.adicionar.android} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="metas">

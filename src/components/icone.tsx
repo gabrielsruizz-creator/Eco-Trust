@@ -53,6 +53,7 @@ export const ICONES = {
   lanterna: { ios: 'flashlight.on.fill', android: 'flashlight_on' },
   compartilhar: { ios: 'square.and.arrow.up', android: 'share' },
   reforma: { ios: 'arrow.left.arrow.right', android: 'swap_horiz' },
+  adicionar: { ios: 'plus.circle.fill', android: 'add_circle' },
   // Categorias e metas
   alimentacao: { ios: 'fork.knife', android: 'restaurant' },
   supermercado: { ios: 'cart', android: 'shopping_cart' },
