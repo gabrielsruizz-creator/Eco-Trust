@@ -91,7 +91,7 @@ export function calcularPet(e: EntradaPet): EstadoPet {
       falas.push(`Faz ${dias} dias que você não aparece... Senti sua falta. Registra um gasto pra eu me animar?`);
       break;
     case 'com-fome':
-      falas.push(`Estou com fome! 🍃 Faz ${dias} dias sem registros. Me alimente registrando seus gastos.`);
+      falas.push(`Estou com fome! 🪙 Faz ${dias} dias sem registros. Me alimente registrando seus gastos.`);
       break;
     case 'preocupado':
       falas.push(

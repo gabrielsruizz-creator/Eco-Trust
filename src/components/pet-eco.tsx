@@ -1,5 +1,7 @@
 /**
- * Desenho do mascote (SVG) com expressão conforme o humor e folhas conforme o estágio.
+ * Mascote do EcoTrust: um saquinho de dinheiro em silhueta, no estilo "papel e tinta" do app.
+ * Corpo na cor do texto (preto no claro, creme no escuro), olhos vazados na cor do fundo e uma
+ * expressão por humor. Só no humor radiante ele ganha cor, como destaque.
  * Animações: flutua sem parar, pisca de tempos em tempos e pula quando é tocado.
  */
 
@@ -14,16 +16,19 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Ellipse, G, Path, Polygon } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 
+import { useTheme } from '@/hooks/use-theme';
 import type { EstagioPet, HumorPet } from '@/services/pet-service';
 import { vibrarLeve } from '@/utils/vibracao';
 
-const CORPO = '#1FB58F';
-const CORPO_CANSADO = '#7FA88E';
-const BARRIGA = '#C9F0D6';
-const FOLHA = '#0A7A5E';
-const TINTA = '#1F2D27';
+/** Destaque do humor radiante (o verde "positivo" do app) */
+const COR_RADIANTE = '#2E9E5E';
+
+/** Corpo do saquinho: base larga e arredondada, "pescoço" estreito embaixo do laço. */
+const CORPO = 'M44 46 C40 52 26 60 24 78 C22 96 38 106 60 106 C82 106 98 96 96 78 C94 60 80 52 76 46 Z';
+/** Laço em cima, como a alça do saquinho */
+const ALCA = 'M47 46 L47 32 Q47 24 55 24 L65 24 Q73 24 73 32 L73 46';
 
 type Props = {
   humor: HumorPet;
@@ -34,18 +39,21 @@ type Props = {
 };
 
 export function PetEco({ humor, estagio, tamanho = 150, aoTocar, rotuloAcessivel }: Props) {
+  const theme = useTheme();
   const [piscando, setPiscando] = useState(false);
   const flutuar = useSharedValue(0);
   const escala = useSharedValue(1);
 
-  // Flutua para cima e para baixo sem parar (mais devagar quando está triste ou com fome).
+  // Flutua para cima e para baixo (mais devagar e mais baixo quando está triste ou com fome).
   useEffect(() => {
     const lento = humor === 'triste' || humor === 'com-fome';
-    flutuar.set(withRepeat(
-      withTiming(lento ? -2 : -6, { duration: lento ? 1800 : 1200, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    ));
+    flutuar.set(
+      withRepeat(
+        withTiming(lento ? -2 : -6, { duration: lento ? 1800 : 1200, easing: Easing.inOut(Easing.sin) }),
+        -1,
+        true,
+      ),
+    );
   }, [flutuar, humor]);
 
   // Pisca a cada ~4 segundos.
@@ -67,116 +75,141 @@ export function PetEco({ humor, estagio, tamanho = 150, aoTocar, rotuloAcessivel
     aoTocar?.();
   }
 
-  const cansado = humor === 'triste' || humor === 'com-fome';
-  const fator = estagio === 'filhote' ? 0.82 : estagio === 'jovem' ? 0.9 : 1;
+  const tinta = humor === 'radiante' ? COR_RADIANTE : theme.text;
+  const vazado = theme.background;
+  // Cresce com o estágio: filhote pequeno, sábio no tamanho cheio.
+  const fator = estagio === 'filhote' ? 0.78 : estagio === 'jovem' ? 0.88 : 1;
+  // Triste: o corpo "murcha" um pouco para baixo.
+  const murcho = humor === 'triste' ? 'translate(0 3) scale(1 0.96)' : '';
 
   return (
-    <Pressable onPress={tocar} accessibilityRole="button" accessibilityLabel={rotuloAcessivel} accessibilityHint="Toque para ouvir outra frase">
+    <Pressable
+      onPress={tocar}
+      accessibilityRole="button"
+      accessibilityLabel={rotuloAcessivel}
+      accessibilityHint="Toque para ouvir outra frase">
       <Animated.View style={[{ width: tamanho, height: tamanho }, estilo]}>
         <Svg width={tamanho} height={tamanho} viewBox="0 0 120 120">
           {/* Sombra no chão */}
-          <Ellipse cx={60} cy={110} rx={28 * fator} ry={4} fill="#000" opacity={0.12} />
-          <G transform={`translate(${60 - 60 * fator} ${(1 - fator) * 100}) scale(${fator})`}>
-            <Folhas estagio={estagio} />
-            {/* Bracinhos */}
-            <Ellipse cx={22} cy={74} rx={7} ry={10} fill={cansado ? CORPO_CANSADO : CORPO} />
-            <Ellipse cx={98} cy={74} rx={7} ry={10} fill={cansado ? CORPO_CANSADO : CORPO} />
-            {/* Corpo e barriga */}
-            <Ellipse cx={60} cy={68} rx={38} ry={36} fill={cansado ? CORPO_CANSADO : CORPO} />
-            <Ellipse cx={60} cy={80} rx={22} ry={16} fill={BARRIGA} />
-            <Rosto humor={humor} piscando={piscando} />
+          <Ellipse cx={60} cy={112} rx={30 * fator} ry={3.5} fill={theme.text} opacity={0.1} />
+          <G transform={`translate(${60 - 60 * fator} ${(1 - fator) * 108}) scale(${fator})`}>
+            <G transform={murcho}>
+              <Path d={ALCA} stroke={tinta} strokeWidth={8} strokeLinecap="round" fill="none" />
+              <Path d={CORPO} fill={tinta} />
+              {/* Nó do laço */}
+              <Rect x={42} y={42} width={36} height={9} rx={4.5} fill={tinta} />
+              <Rect x={44} y={46.5} width={32} height={1.6} rx={0.8} fill={vazado} opacity={0.35} />
+              <Rosto humor={humor} piscando={piscando} cor={vazado} />
+              {estagio === 'sabio' && <Moeda x={60} y={92} r={6} cor={vazado} />}
+            </G>
           </G>
-          {humor === 'radiante' && <Brilhos />}
-          {humor === 'com-fome' && <Path d="M88 30 q6 -6 12 0 q-6 6 -12 0z" fill={FOLHA} opacity={0.8} />}
+          {humor === 'radiante' && <Brilhos cor={theme.text} />}
+          {humor === 'com-fome' && <Moeda x={101} y={86} r={9} cor={theme.background} fundo={theme.text} />}
+          {humor === 'triste' && <Reticencias cor={theme.text} />}
         </Svg>
       </Animated.View>
     </Pressable>
   );
 }
 
-function Folhas({ estagio }: { estagio: EstagioPet }) {
-  const folha = (rotacao: number, tamanho = 1) => (
-    <Path
-      key={rotacao}
-      d="M60 34 C52 22 54 12 60 6 C66 12 68 22 60 34 Z"
-      fill={FOLHA}
-      transform={`rotate(${rotacao} 60 34) translate(${60 - 60 * tamanho} ${34 - 34 * tamanho}) scale(${tamanho})`}
-    />
-  );
-  const quantas = estagio === 'filhote' ? [0] : estagio === 'jovem' ? [-25, 25] : [-35, 0, 35];
+/** Rosto vazado (na cor do fundo), no estilo do mascote: dois olhinhos e quase nada mais. */
+function Rosto({ humor, piscando, cor }: { humor: HumorPet; piscando: boolean; cor: string }) {
+  const arco = (d: string) => <Path d={d} stroke={cor} strokeWidth={3.2} fill="none" strokeLinecap="round" />;
+
+  if (humor === 'radiante' || humor === 'feliz') {
+    // Olhos fechados de alegria: ^ ^
+    return (
+      <G>
+        {arco('M44 76 q5 -7 10 0')}
+        {arco('M66 76 q5 -7 10 0')}
+        {humor === 'radiante' && <Path d="M54 86 Q60 93 66 86 Z" fill={cor} />}
+      </G>
+    );
+  }
+  if (humor === 'triste') {
+    // Olhos caídos, quase fechados
+    return (
+      <G>
+        {arco('M44 76 q5 4 10 0')}
+        {arco('M66 76 q5 4 10 0')}
+      </G>
+    );
+  }
+  if (piscando) {
+    return (
+      <G>
+        {arco('M45 76 h8')}
+        {arco('M67 76 h8')}
+      </G>
+    );
+  }
+  if (humor === 'preocupado') {
+    // Olhos olhando de lado + sobrancelhas tensas
+    return (
+      <G>
+        <Ellipse cx={47} cy={77} rx={4} ry={5.5} fill={cor} />
+        <Ellipse cx={69} cy={77} rx={4} ry={5.5} fill={cor} />
+        {arco('M42 69 L53 65')}
+        {arco('M78 69 L67 65')}
+      </G>
+    );
+  }
+  if (humor === 'com-fome') {
+    // Olhos abertos + boquinha aberta
+    return (
+      <G>
+        <Ellipse cx={50} cy={74} rx={4.5} ry={6} fill={cor} />
+        <Ellipse cx={70} cy={74} rx={4.5} ry={6} fill={cor} />
+        <Ellipse cx={60} cy={88} rx={3.5} ry={4} fill={cor} />
+      </G>
+    );
+  }
+  // Tranquilo: dois olhinhos ovais
   return (
     <G>
-      {quantas.map((r) => folha(r, estagio === 'filhote' ? 0.7 : 1))}
-      {estagio === 'sabio' && <Polygon points="44,30 50,18 56,28 60,14 64,28 70,18 76,30" fill="#F2C94C" />}
+      <Ellipse cx={50} cy={76} rx={4.5} ry={6.5} fill={cor} />
+      <Ellipse cx={70} cy={76} rx={4.5} ry={6.5} fill={cor} />
     </G>
   );
 }
 
-function Rosto({ humor, piscando }: { humor: HumorPet; piscando: boolean }) {
-  const olhosFeliz = humor === 'radiante';
+/** Moedinha: o "lanche" do mascote (com fome) ou um detalhe no estágio sábio. */
+function Moeda({ x, y, r, cor, fundo }: { x: number; y: number; r: number; cor: string; fundo?: string }) {
   return (
     <G>
-      {/* Olhos */}
-      {olhosFeliz ? (
-        <>
-          <Path d="M42 62 q5 -7 10 0" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />
-          <Path d="M68 62 q5 -7 10 0" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />
-        </>
-      ) : humor === 'triste' ? (
-        <>
-          <Path d="M42 62 q5 4 10 0" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />
-          <Path d="M68 62 q5 4 10 0" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />
-          <Path d="M45 67 q-3 6 0 8 q3 -2 0 -8z" fill="#5DADE2" />
-        </>
-      ) : (
-        <>
-          <Ellipse cx={47} cy={60} rx={5} ry={piscando ? 0.8 : 6} fill={TINTA} />
-          <Ellipse cx={73} cy={60} rx={5} ry={piscando ? 0.8 : 6} fill={TINTA} />
-          {!piscando && (
-            <>
-              <Circle cx={49} cy={58} r={1.6} fill="#fff" />
-              <Circle cx={75} cy={58} r={1.6} fill="#fff" />
-            </>
-          )}
-        </>
-      )}
-
-      {/* Sobrancelhas de preocupação */}
-      {humor === 'preocupado' && (
-        <>
-          <Path d="M40 50 L52 53" stroke={TINTA} strokeWidth={2.5} strokeLinecap="round" />
-          <Path d="M80 50 L68 53" stroke={TINTA} strokeWidth={2.5} strokeLinecap="round" />
-        </>
-      )}
-
-      {/* Bochechas */}
-      {(humor === 'feliz' || humor === 'radiante') && (
-        <>
-          <Ellipse cx={38} cy={72} rx={5} ry={3} fill="#F19CB4" opacity={0.8} />
-          <Ellipse cx={82} cy={72} rx={5} ry={3} fill="#F19CB4" opacity={0.8} />
-        </>
-      )}
-
-      {/* Boca */}
-      {humor === 'radiante' && <Path d="M48 74 Q60 90 72 74 Z" fill={TINTA} />}
-      {humor === 'feliz' && <Path d="M50 75 Q60 84 70 75" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />}
-      {humor === 'tranquilo' && <Path d="M52 77 Q60 81 68 77" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />}
-      {humor === 'preocupado' && (
-        <Path d="M51 79 Q55.5 75 60 79 Q64.5 83 69 79" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />
-      )}
-      {humor === 'com-fome' && <Ellipse cx={60} cy={79} rx={4.5} ry={5.5} fill={TINTA} />}
-      {humor === 'triste' && <Path d="M50 82 Q60 73 70 82" stroke={TINTA} strokeWidth={3} fill="none" strokeLinecap="round" />}
+      {fundo && <Circle cx={x} cy={y} r={r} fill={fundo} />}
+      <Circle cx={x} cy={y} r={r * 0.62} stroke={cor} strokeWidth={1.6} fill="none" />
+      <Path d={`M${x} ${y - r * 0.3} V${y + r * 0.3}`} stroke={cor} strokeWidth={1.6} strokeLinecap="round" />
     </G>
   );
 }
 
-function Brilhos() {
-  const estrela = (x: number, y: number, t: number) => (
-    <Path
-      key={`${x}-${y}`}
-      d={`M${x} ${y - t} L${x + t / 3} ${y - t / 3} L${x + t} ${y} L${x + t / 3} ${y + t / 3} L${x} ${y + t} L${x - t / 3} ${y + t / 3} L${x - t} ${y} L${x - t / 3} ${y - t / 3} Z`}
-      fill="#F2C94C"
-    />
+/** Pontinhos em volta, como brilho de alegria. */
+function Brilhos({ cor }: { cor: string }) {
+  const pontos: [number, number, number][] = [
+    [14, 56, 2.6],
+    [20, 34, 2],
+    [36, 16, 2.4],
+    [84, 16, 2.4],
+    [100, 34, 2],
+    [106, 56, 2.6],
+  ];
+  return (
+    <G>
+      {pontos.map(([x, y, r]) => (
+        <Circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill={cor} />
+      ))}
+    </G>
   );
-  return <G>{[estrela(16, 30, 6), estrela(104, 40, 5), estrela(98, 16, 4)]}</G>;
+}
+
+/** "..." de quem está desanimado. */
+function Reticencias({ cor }: { cor: string }) {
+  return (
+    <G>
+      {[92, 100, 108].map((x) => (
+        <Circle key={x} cx={x} cy={30} r={2.4} fill={cor} />
+      ))}
+    </G>
+  );
 }
