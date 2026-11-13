@@ -186,10 +186,10 @@ export function Botao({ texto, variante = 'primario', selecionado, disabled, sty
       style={(state) => [
         styles.botao,
         primario
-          ? [{ backgroundColor: theme.accent }, !disabled && { boxShadow: `0 6px 18px ${theme.brilho}` }]
+          ? { backgroundColor: theme.accent }
           : perigo
             ? { backgroundColor: theme.negativeSoft }
-            : { backgroundColor: theme.backgroundSelected, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth },
+            : { backgroundColor: theme.backgroundElement, borderColor: theme.text, borderWidth: 1.2 },
         (state.pressed || disabled) && styles.apagado,
         typeof style === 'function' ? style(state) : style,
       ]}
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   },
   cartao: {
     padding: Spacing.three,
-    borderRadius: Spacing.four,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderCurve: 'continuous',
     gap: Spacing.two,
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.two + Spacing.one,
     paddingHorizontal: Spacing.three,
-    borderRadius: 999,
+    borderRadius: 6,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
@@ -379,13 +379,13 @@ const styles = StyleSheet.create({
   segmentado: {
     flexDirection: 'row',
     padding: Spacing.one,
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
   },
   segmento: {
     flex: 1,
     minHeight: 40,
-    borderRadius: 999,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },

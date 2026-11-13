@@ -36,9 +36,12 @@ type Props = {
   tamanho?: number;
   aoTocar?: () => void;
   rotuloAcessivel: string;
+  /** Cor do corpo e cor dos olhos vazados (padrão: texto e fundo do tema) */
+  corTinta?: string;
+  corFundo?: string;
 };
 
-export function PetEco({ humor, estagio, tamanho = 150, aoTocar, rotuloAcessivel }: Props) {
+export function PetEco({ humor, estagio, tamanho = 150, aoTocar, rotuloAcessivel, corTinta, corFundo }: Props) {
   const theme = useTheme();
   const [piscando, setPiscando] = useState(false);
   const flutuar = useSharedValue(0);
@@ -75,8 +78,8 @@ export function PetEco({ humor, estagio, tamanho = 150, aoTocar, rotuloAcessivel
     aoTocar?.();
   }
 
-  const tinta = humor === 'radiante' ? COR_RADIANTE : theme.text;
-  const vazado = theme.background;
+  const tinta = corTinta ?? (humor === 'radiante' ? COR_RADIANTE : theme.text);
+  const vazado = corFundo ?? theme.background;
   // Cresce com o estágio: filhote pequeno, sábio no tamanho cheio.
   const fator = estagio === 'filhote' ? 0.78 : estagio === 'jovem' ? 0.88 : 1;
   // Triste: o corpo "murcha" um pouco para baixo.

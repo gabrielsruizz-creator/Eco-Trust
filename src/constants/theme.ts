@@ -1,94 +1,98 @@
 /**
  * Cores, espaçamentos e tipografia do EcoTrust (tema escuro padrão e claro opcional).
- * Os cartões podem ser de "vidro" (Liquid Glass) ou de "papel" (sólidos): escolha nas Preferências.
+ * Cartões sólidos e planos por padrão; o vidro (Liquid Glass) é opcional nas Preferências.
  */
 
 import { Platform } from 'react-native';
 
 export const Colors = {
-  // Paleta "Papel e tinta": creme e preto no claro, grafite e creme no escuro, poucos tons e sem
-  // degradês coloridos (referência: interfaces editoriais em preto e branco + Liquid Glass da Apple).
-  // A cor vem dos gráficos e das situações (positivo/negativo); o resto é tinta sobre papel.
+  // Paleta "Branco e rosa": superfícies brancas, rosa como cor principal, layout plano no estilo
+  // editorial (cartões sólidos com cantos pouco arredondados e botões retangulares).
   // Contrastes (WCAG AA): text, textSecondary, accentText e onAccent ≥ 4,5:1 nos dois temas.
   light: {
-    text: '#16150F',
-    background: '#F3EEE4',
-    backgroundElement: '#FFFDF8',
-    backgroundSelected: '#E9E2D4',
-    border: '#E2DACB',
-    textSecondary: '#6B6458',
-    /** Preenchimento de botões e elementos ativos: tinta */
-    accent: '#16150F',
+    text: '#21141A',
+    background: '#FFF9FB',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#FCEBF1',
+    border: '#F2E1E8',
+    textSecondary: '#7E6872',
+    /** Botões, barra de ações e elementos ativos */
+    accent: '#C2255C',
     /** Texto/ícone sobre o accent */
-    onAccent: '#FFFDF8',
+    onAccent: '#FFFFFF',
     /** Links e textos de destaque */
-    accentText: '#16150F',
-    /** Elementos decorativos (anéis, ícones em círculo) */
-    brand: '#16150F',
+    accentText: '#B0204F',
+    /** Ícones decorativos (círculos, anéis) */
+    brand: '#C2255C',
     positive: '#2E7A4B',
-    negative: '#B23F2C',
-    accentSoft: '#E9E2D4',
+    negative: '#B3261E',
+    accentSoft: '#FFE6EE',
     positiveSoft: '#E3EFE4',
-    negativeSoft: '#F6E3DD',
-    /** Cartões de destaque (saldo, Impostômetro): tinta com texto claro, nos dois temas */
-    heroi: '#16150F',
-    gradienteInicio: '#16150F',
-    gradienteFim: '#2A2820',
-    /** Sombra suave atrás de elementos de destaque */
-    brilho: 'rgba(22, 21, 15, 0.14)',
-    /** Vidro (Liquid Glass simulado onde o efeito nativo não existe) */
-    vidro: 'rgba(255, 253, 248, 0.58)',
-    vidroBorda: 'rgba(255, 255, 255, 0.85)',
-    vidroBrilho: 'rgba(255, 255, 255, 0.55)',
-    /** Manchas de cor do fundo, que dão o que o vidro refletir */
-    fundoMancha1: 'rgba(214, 186, 140, 0.55)',
-    fundoMancha2: 'rgba(160, 182, 160, 0.45)',
-    fundoMancha3: 'rgba(222, 160, 136, 0.35)',
-    // Gráficos: cores de situação (sempre com ícone + texto, nunca sozinhas) e linhas finas
+    negativeSoft: '#FBE3E1',
+    /** Área de destaque clara (topo de telas de ação, círculos de ícone) */
+    area: '#FFE6EE',
+    /** Banner do Impostômetro e o texto sobre ele */
+    banner: '#FFC4D6',
+    onBanner: '#21141A',
+    /** Cartões de destaque com texto claro, nos dois temas */
+    heroi: '#C2255C',
+    gradienteInicio: '#C2255C',
+    gradienteFim: '#A81D4F',
+    brilho: 'rgba(33, 20, 26, 0.08)',
+    /** Vidro (opcional nas Preferências) */
+    vidro: 'rgba(255, 255, 255, 0.62)',
+    vidroBorda: 'rgba(255, 255, 255, 0.9)',
+    vidroBrilho: 'rgba(255, 255, 255, 0.6)',
+    fundoMancha1: 'rgba(255, 170, 200, 0.55)',
+    fundoMancha2: 'rgba(255, 214, 228, 0.6)',
+    fundoMancha3: 'rgba(214, 51, 108, 0.22)',
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#E4DCCC',
-    chartBaseline: '#C9BFAD',
+    chartGrid: '#F2E1E8',
+    chartBaseline: '#D9C2CC',
   },
   dark: {
-    text: '#F3EEE4',
-    background: '#0F0F0D',
-    backgroundElement: '#1B1A17',
-    backgroundSelected: '#2A2925',
-    border: '#2E2C27',
-    textSecondary: '#A9A293',
-    accent: '#F3EEE4',
-    onAccent: '#16150F',
-    accentText: '#F3EEE4',
-    brand: '#F3EEE4',
+    text: '#F8EEF2',
+    background: '#141012',
+    backgroundElement: '#1F181C',
+    backgroundSelected: '#2C2228',
+    border: '#30252B',
+    textSecondary: '#B6A3AC',
+    accent: '#F06A9B',
+    onAccent: '#1A0F15',
+    accentText: '#F48DB2',
+    brand: '#F06A9B',
     positive: '#6FCF97',
-    negative: '#F0907D',
-    accentSoft: '#2A2925',
+    negative: '#F28B82',
+    accentSoft: '#3A1F2C',
     positiveSoft: '#14271C',
-    negativeSoft: '#2E1915',
-    heroi: '#26241F',
-    gradienteInicio: '#26241F',
-    gradienteFim: '#34312A',
-    brilho: 'rgba(0, 0, 0, 0.45)',
-    vidro: 'rgba(40, 38, 33, 0.55)',
-    vidroBorda: 'rgba(255, 255, 255, 0.14)',
-    vidroBrilho: 'rgba(255, 255, 255, 0.08)',
-    fundoMancha1: 'rgba(150, 118, 70, 0.40)',
-    fundoMancha2: 'rgba(70, 104, 84, 0.38)',
-    fundoMancha3: 'rgba(140, 74, 58, 0.30)',
+    negativeSoft: '#331A1A',
+    area: '#2B1C24',
+    banner: '#F2A7C1',
+    onBanner: '#1A0F15',
+    heroi: '#8E1E48',
+    gradienteInicio: '#8E1E48',
+    gradienteFim: '#6E1638',
+    brilho: 'rgba(0, 0, 0, 0.4)',
+    vidro: 'rgba(40, 30, 36, 0.55)',
+    vidroBorda: 'rgba(255, 255, 255, 0.12)',
+    vidroBrilho: 'rgba(255, 255, 255, 0.07)',
+    fundoMancha1: 'rgba(240, 106, 155, 0.30)',
+    fundoMancha2: 'rgba(142, 30, 72, 0.35)',
+    fundoMancha3: 'rgba(242, 167, 193, 0.18)',
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#2B2925',
-    chartBaseline: '#423F37',
+    chartGrid: '#2E242A',
+    chartBaseline: '#4A3B43',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /** Cores de fundo do avatar (todas com bom contraste para texto branco). */
-export const AvatarColors = ['#16150F', '#3D5A80', '#2E7A4B', '#A0522D', '#8C3B5A', '#2F6F6A'] as const;
+export const AvatarColors = ['#C2255C', '#21141A', '#2E7A4B', '#3D5A80', '#A0522D', '#6B3FA0'] as const;
 
 /**
  * Cores para séries de gráficos (identidade de cada categoria), sempre nesta ordem.

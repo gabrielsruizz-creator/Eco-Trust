@@ -52,6 +52,7 @@ export const ICONES = {
   qrcode: { ios: 'qrcode.viewfinder', android: 'qr_code_scanner' },
   lanterna: { ios: 'flashlight.on.fill', android: 'flashlight_on' },
   compartilhar: { ios: 'square.and.arrow.up', android: 'share' },
+  reforma: { ios: 'arrow.left.arrow.right', android: 'swap_horiz' },
   // Categorias e metas
   alimentacao: { ios: 'fork.knife', android: 'restaurant' },
   supermercado: { ios: 'cart', android: 'shopping_cart' },
