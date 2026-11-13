@@ -138,7 +138,7 @@ export function Cartao({ children, style }: { children: ReactNode; style?: ViewS
               experimental_backgroundImage: `linear-gradient(180deg, ${theme.vidroBrilho}, transparent 55%)`,
               boxShadow: `0 8px 24px ${theme.brilho}`,
             }
-          : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+          : { backgroundColor: theme.backgroundElement, borderColor: theme.border, boxShadow: `0 6px 18px ${theme.brilho}` },
         style,
       ]}>
       {children}
@@ -189,7 +189,7 @@ export function Botao({ texto, variante = 'primario', selecionado, disabled, sty
           ? { backgroundColor: theme.accent }
           : perigo
             ? { backgroundColor: theme.negativeSoft }
-            : { backgroundColor: theme.backgroundElement, borderColor: theme.text, borderWidth: 1.2 },
+            : { backgroundColor: theme.backgroundElement, boxShadow: `0 4px 12px ${theme.brilho}` },
         (state.pressed || disabled) && styles.apagado,
         typeof style === 'function' ? style(state) : style,
       ]}
@@ -215,9 +215,11 @@ export function Segmentado<T extends string>({
   rotulo: string;
 }) {
   const theme = useTheme();
-  const superficie = useSuperficie();
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={rotulo} style={[styles.segmentado, superficie]}>
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={rotulo}
+      style={[styles.segmentado, { backgroundColor: theme.backgroundSelected, borderColor: 'transparent' }]}>
       {opcoes.map((o) => {
         const ativo = o.valor === valor;
         return (
@@ -226,8 +228,11 @@ export function Segmentado<T extends string>({
             onPress={() => aoMudar(o.valor)}
             accessibilityRole="radio"
             accessibilityState={{ checked: ativo }}
-            style={[styles.segmento, ativo && { backgroundColor: theme.text }]}>
-            <ThemedText type="smallBold" style={{ color: ativo ? theme.background : theme.textSecondary }}>
+            style={[
+              styles.segmento,
+              ativo && { backgroundColor: theme.backgroundElement, boxShadow: `0 2px 6px ${theme.brilho}` },
+            ]}>
+            <ThemedText type={ativo ? 'smallBold' : 'small'} style={{ color: ativo ? theme.text : theme.textSecondary }}>
               {o.texto}
             </ThemedText>
           </Pressable>
@@ -353,8 +358,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cartao: {
-    padding: Spacing.three,
-    borderRadius: 10,
+    padding: Spacing.three + Spacing.half,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     borderCurve: 'continuous',
     gap: Spacing.two,
@@ -367,8 +372,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
     paddingVertical: Spacing.two + Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: 6,
+    paddingHorizontal: Spacing.four,
+    borderRadius: 999,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
@@ -379,13 +384,13 @@ const styles = StyleSheet.create({
   segmentado: {
     flexDirection: 'row',
     padding: Spacing.one,
-    borderRadius: 8,
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
   segmento: {
     flex: 1,
     minHeight: 40,
-    borderRadius: 6,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,42 +1,40 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar } from '@/components/avatar';
 import { Icone, type NomeIcone } from '@/components/icone';
-import { LogoEcoTrust } from '@/components/logo-ecotrust';
+import { Minigrafico } from '@/components/minigrafico';
 import { PetEco } from '@/components/pet-eco';
-import { CartaoSaude } from '@/components/saude-financeira';
-import { Cartao, IconeCirculo, Tela } from '@/components/tela';
+import { Selo, seloDoLancamento } from '@/components/selo';
+import { BotaoIcone, Cartao, Tela } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
+import { Valor } from '@/components/valor';
 import { Spacing } from '@/constants/theme';
 import {
-  useDadosPessoais,
   useDashboard,
+  useHistoricoImpostos,
   useImpostometro,
   useImpostosDosLancamentos,
+  useOrcamentos,
   usePerfilFinanceiro,
   useTransacoes,
 } from '@/hooks/use-dados';
 import { useConta } from '@/hooks/use-sessao';
 import { useTheme } from '@/hooks/use-theme';
-import { primeiroNome } from '@/services/perfil-financeiro-service';
+import type { OrigemImposto } from '@/services/impostometro-service';
+import { primeiroNome, saudacao } from '@/services/perfil-financeiro-service';
 import type { Transacao } from '@/types/financas';
-import { formatarDataCurta, mesAtual, nomeDoMes } from '@/utils/datas';
+import { diasEntre, formatarDataCurta, hoje, mesAtual, nomeDoMes } from '@/utils/datas';
 import { formatarCentavos } from '@/utils/moeda';
 import { visualCategoria } from '@/utils/visual';
 
-const RECENTES = 4;
+const RECENTES = 5;
 
-/** Atalhos da grade (4 × 2), como os serviços do layout de referência */
-const ATALHOS: { icone: NomeIcone; texto: string; destino: Href; destaque?: boolean }[] = [
-  { icone: 'impostos', texto: 'Impostos', destino: '/impostos', destaque: true },
-  { icone: 'categorias', texto: 'Orçamento', destino: '/orcamento' },
-  { icone: 'metas', texto: 'Metas', destino: '/metas', destaque: true },
-  { icone: 'transacoes', texto: 'Transações', destino: '/transacoes' },
-  { icone: 'recibo', texto: 'Imp. Renda', destino: '/imposto-de-renda', destaque: true },
-  { icone: 'reforma', texto: 'Reforma', destino: '/reforma-tributaria' },
-  { icone: 'compras', texto: 'Produtos', destino: '/meus-produtos', destaque: true },
-  { icone: 'aprender', texto: 'Aprender', destino: '/academy' },
+/** Barra única de ações; a primeira é a principal (destaque em rosa cheio). */
+const ACOES: { icone: NomeIcone; texto: string; destino: Href }[] = [
+  { icone: 'mais', texto: 'Despesa', destino: { pathname: '/novo-lancamento', params: { tipo: 'despesa' } } },
+  { icone: 'qrcode', texto: 'Ler nota', destino: '/ler-nota' },
+  { icone: 'entrada', texto: 'Receita', destino: { pathname: '/novo-lancamento', params: { tipo: 'receita' } } },
+  { icone: 'compartilhar', texto: 'Compartilhar', destino: '/compartilhar-impostos' },
 ];
 
 export default function InicioScreen() {
@@ -44,154 +42,202 @@ export default function InicioScreen() {
   const mes = mesAtual();
   const dashboard = useDashboard(mes);
   const impostos = useImpostometro(mes);
+  const historico = useHistoricoImpostos(mes);
   const impostosPorLancamento = useImpostosDosLancamentos(mes);
+  const orcamentos = useOrcamentos(mes);
   const recentes = useTransacoes(mes).slice(0, RECENTES);
   const perfil = usePerfilFinanceiro();
   const conta = useConta();
-  const pessoal = useDadosPessoais();
   const nome = perfil ? primeiroNome(perfil.nome) : conta ? primeiroNome(conta.nome) : '';
-  const saldo = dashboard.saldoDisponivelCentavos;
+  const nomeMes = nomeDoMes(mes).split(' ')[0];
+
+  const estourados = orcamentos.categorias.filter((o) => o.situacao === 'ultrapassou');
+  const excesso = estourados.reduce((s, o) => s + Math.max(0, -o.restanteCentavos), 0);
+  const [ano, m] = mes.split('-').map(Number);
+  const diasRestantes = diasEntre(hoje(), `${mes}-${String(new Date(ano, m, 0).getDate()).padStart(2, '0')}`);
+
+  const consumo = impostos.impostosCentavos;
+  const renda = impostos.fixos ? impostos.fixos.inssCentavos + impostos.fixos.irCentavos : 0;
+  const patrimonio = impostos.fixos
+    ? impostos.fixos.ipvaCentavos + impostos.fixos.iptuCentavos + impostos.fixos.outrosCentavos
+    : 0;
 
   const topo = (
-    <View style={styles.marca}>
-      <LogoEcoTrust tamanho={22} />
-      <ThemedText style={styles.nomeApp}>EcoTrust</ThemedText>
+    <View style={styles.topo}>
       <Pressable
         onPress={() => router.navigate('/perfil')}
         accessibilityRole="button"
-        accessibilityLabel="Abrir o perfil"
-        hitSlop={6}>
-        <Avatar nome={conta?.nome ?? nome} avatar={pessoal.avatar} cor={pessoal.corAvatar} tamanho={36} />
+        accessibilityLabel="Abrir o perfil e o mascote"
+        style={[styles.mascote, { backgroundColor: theme.accentSoft }]}>
+        <PetEco humor="feliz" estagio="adulto" tamanho={44} corTinta={theme.brand} corFundo={theme.accentSoft} rotuloAcessivel="Mascote do EcoTrust" />
       </Pressable>
+      <View style={styles.flex}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {saudacao()},
+        </ThemedText>
+        <ThemedText style={styles.nome} accessibilityRole="header" numberOfLines={1}>
+          {nome || 'que bom te ver'}
+        </ThemedText>
+      </View>
+      <BotaoIcone icone="ia" rotulo="Insights financeiros" aoTocar={() => router.push('/insights')} />
+      <BotaoIcone icone="mais" rotulo="Novo lançamento" aoTocar={() => router.push('/novo-lancamento')} />
     </View>
   );
 
   return (
     <Tela titulo="Início" topo={topo}>
-      {/* Saudação e saldo */}
-      <View
-        style={styles.ola}
-        accessible
-        accessibilityLabel={`Olá${nome ? `, ${nome}` : ''}. Seu saldo disponível: ${formatarCentavos(saldo)}`}>
-        <View style={styles.flex}>
-          <ThemedText type="smallBold" style={styles.saudacao} accessibilityRole="header">
-            {nome ? `Olá, ${nome}` : 'Olá!'}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Seu saldo disponível
-          </ThemedText>
-        </View>
-        <ThemedText style={[styles.saldo, saldo < 0 && { color: theme.negative }]} numberOfLines={1} adjustsFontSizeToFit>
-          {saldo < 0 ? '− ' : ''}
-          {formatarCentavos(Math.abs(saldo))}
-        </ThemedText>
-      </View>
+      {/* Impostos do mês */}
+      <Pressable
+        onPress={() => router.navigate('/impostos')}
+        accessibilityRole="button"
+        accessibilityLabel={`Impostos pagos em ${nomeMes}: ${formatarCentavos(impostos.cargaTotalCentavos)}${impostos.percentualDosGastos !== null ? `, ${impostos.percentualDosGastos}% dos gastos` : ''}. Abrir o Impostômetro`}
+        style={({ pressed }) => pressed && styles.pressionado}>
+        <Cartao>
+          <View style={styles.linhaTopo}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+              Impostos pagos · {nomeMes}
+            </ThemedText>
+            <Minigrafico valores={historico.map((h) => h.centavos)} />
+          </View>
+          <View style={styles.linhaValor}>
+            <Valor centavos={impostos.cargaTotalCentavos} style={styles.valorGrande} />
+            {impostos.percentualDosGastos !== null && (
+              <Selo texto={`${impostos.percentualDosGastos.toLocaleString('pt-BR')}% dos gastos`} tom="rosa" />
+            )}
+          </View>
+          <View style={[styles.tres, { borderTopColor: theme.border }]}>
+            <Parte rotulo="Consumo" cor={theme.text} centavos={consumo} />
+            <Parte rotulo="Renda" cor={theme.brand} centavos={renda} separador />
+            <Parte rotulo="Patrimônio" cor={theme.warning} centavos={patrimonio} separador />
+          </View>
+        </Cartao>
+      </Pressable>
 
-      {/* Barra de ações */}
-      <View style={[styles.barra, { backgroundColor: theme.accent }]}>
-        <AcaoBarra icone="mais" texto="Despesa" destino={{ pathname: '/novo-lancamento', params: { tipo: 'despesa' } }} />
-        <AcaoBarra icone="entrada" texto="Receita" destino={{ pathname: '/novo-lancamento', params: { tipo: 'receita' } }} />
-        <AcaoBarra icone="qrcode" texto="Ler nota" destino="/ler-nota" />
-      </View>
-
-      {/* Grade de atalhos */}
-      <Cartao style={styles.grade}>
-        {ATALHOS.map((a) => (
+      {/* Ações */}
+      <Cartao style={styles.acoes}>
+        {ACOES.map((a, i) => (
           <Pressable
             key={a.texto}
             onPress={() => router.push(a.destino)}
             accessibilityRole="button"
             accessibilityLabel={a.texto}
-            style={({ pressed }) => [styles.atalho, pressed && styles.pressionado]}>
-            <Icone nome={a.icone} cor={a.destaque ? theme.accent : theme.text} tamanho={24} />
-            <ThemedText type="small" style={styles.textoAtalho} numberOfLines={1}>
+            style={({ pressed }) => [
+              styles.acao,
+              i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: theme.border },
+              pressed && styles.pressionado,
+            ]}>
+            <View style={[styles.circuloAcao, { backgroundColor: i === 0 ? theme.accent : theme.accentSoft }]}>
+              <Icone nome={a.icone} cor={i === 0 ? theme.onAccent : theme.accentText} tamanho={17} />
+            </View>
+            <ThemedText type="small" style={styles.textoAcao} numberOfLines={1}>
               {a.texto}
             </ThemedText>
           </Pressable>
         ))}
       </Cartao>
 
-      {/* Banner do Impostômetro */}
-      <Pressable
-        onPress={() => router.navigate('/impostos')}
-        accessibilityRole="button"
-        accessibilityLabel={`Impostômetro: ${formatarCentavos(impostos.cargaTotalCentavos)} em impostos neste mês. Ver detalhes.`}
-        style={({ pressed }) => [styles.banner, { backgroundColor: theme.banner }, pressed && styles.pressionado]}>
-        <View style={styles.flex}>
-          <ThemedText style={[styles.tituloBanner, { color: theme.onBanner }]}>
-            {formatarCentavos(impostos.cargaTotalCentavos)} em impostos
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.onBanner }}>
-            {impostos.percentualDosGastos !== null
-              ? `${impostos.percentualDosGastos.toLocaleString('pt-BR')}% do que você gastou em ${nomeDoMes(mes).split(' ')[0]}`
-              : 'Registre suas despesas para ver o imposto escondido nelas'}
-          </ThemedText>
-          {impostos.diasTrabalhados !== null && (
-            <ThemedText type="small" style={[styles.detalheBanner, { color: theme.onBanner }]}>
-              {impostos.diasTrabalhados.toLocaleString('pt-BR')} dias de trabalho para o governo ›
-            </ThemedText>
-          )}
-        </View>
-        <PetEco
-          humor="feliz"
-          estagio="adulto"
-          tamanho={76}
-          corTinta={theme.onBanner}
-          corFundo={theme.banner}
-          rotuloAcessivel="Mascote do EcoTrust"
-        />
-      </Pressable>
-
-      {/* Transações recentes */}
-      <View style={styles.secao}>
-        <ThemedText type="smallBold" style={styles.tituloSecao} accessibilityRole="header">
-          Transações recentes
-        </ThemedText>
-        <Pressable onPress={() => router.navigate('/transacoes')} accessibilityRole="link" hitSlop={12}>
-          <ThemedText type="smallBold">Ver tudo</ThemedText>
-        </Pressable>
-      </View>
-      {recentes.length === 0 ? (
+      {/* Alerta: orçamento estourado, senão a dica do mês */}
+      {estourados.length > 0 ? (
         <Cartao>
-          <ThemedText type="small" themeColor="textSecondary">
-            Nenhuma transação neste mês. Registre uma despesa ou leia o QR Code de uma nota.
-          </ThemedText>
+          <View style={styles.alerta}>
+            <View style={[styles.quadrado, { borderColor: theme.border }]}>
+              <Icone nome="bandeira" cor={theme.text} tamanho={18} />
+            </View>
+            <View style={styles.flex}>
+              <ThemedText type="smallBold" style={styles.tituloAlerta}>
+                {estourados.length === 1 ? '1 orçamento estourado' : `${estourados.length} orçamentos estourados`}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                <ThemedText type="small" style={{ color: theme.accentText }}>
+                  {formatarCentavos(excesso)} acima
+                </ThemedText>
+                {' · '}
+                {estourados.map((o) => o.nome).join(' e ')}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.linhaTopo}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+              {diasRestantes > 0 ? `Ainda dá tempo: faltam ${diasRestantes} dias` : 'Último dia do mês'}
+            </ThemedText>
+            <BotaoPilula texto="Revisar" aoTocar={() => router.push('/orcamento')} />
+          </View>
         </Cartao>
       ) : (
-        recentes.map((t) => (
-          <LinhaTransacao key={t.id} transacao={t} impostosCentavos={impostosPorLancamento.get(t.id)?.centavos ?? 0} />
-        ))
+        dashboard.insights[0] && (
+          <Pressable
+            onPress={() => router.push('/insights')}
+            accessibilityRole="button"
+            accessibilityLabel={`Dica: ${dashboard.insights[0].texto}. Ver insights.`}
+            style={({ pressed }) => pressed && styles.pressionado}>
+            <Cartao style={styles.alerta}>
+              <View style={[styles.quadrado, { borderColor: theme.border }]}>
+                <Icone nome="ia" cor={theme.brand} tamanho={18} />
+              </View>
+              <ThemedText type="small" style={styles.flex}>
+                {dashboard.insights[0].texto}
+              </ThemedText>
+            </Cartao>
+          </Pressable>
+        )
       )}
 
-      {/* Dica do mês e saúde financeira */}
-      {dashboard.insights[0] && (
+      {/* Últimos lançamentos */}
+      <View style={styles.secao}>
+        <ThemedText type="smallBold" style={styles.tituloSecao} accessibilityRole="header">
+          Últimos lançamentos
+        </ThemedText>
         <Pressable
-          onPress={() => router.push('/insights')}
-          accessibilityRole="button"
-          accessibilityLabel={`Dica: ${dashboard.insights[0].texto}. Ver insights financeiros.`}
-          style={({ pressed }) => pressed && styles.pressionado}>
-          <Cartao style={styles.linhaCartao}>
-            <IconeCirculo icone="ia" cor={theme.brand} tamanho={36} />
-            <ThemedText type="small" style={styles.flex}>
-              {dashboard.insights[0].texto}
-            </ThemedText>
-          </Cartao>
+          onPress={() => router.navigate('/transacoes')}
+          accessibilityRole="link"
+          hitSlop={8}
+          style={[styles.verTudo, { backgroundColor: theme.backgroundElement, boxShadow: `0 4px 12px ${theme.brilho}` }]}>
+          <ThemedText type="small">Ver tudo ▸</ThemedText>
         </Pressable>
-      )}
-      <CartaoSaude />
+      </View>
+      <Cartao style={styles.lista}>
+        {recentes.length === 0 ? (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.vazio}>
+            Nada registrado neste mês ainda. Que tal ler o QR Code da sua última nota?
+          </ThemedText>
+        ) : (
+          recentes.map((t, i) => {
+            const imp = impostosPorLancamento.get(t.id);
+            return <LinhaLancamento key={t.id} transacao={t} impostosCentavos={imp?.centavos ?? 0} origem={imp?.origem ?? null} separador={i > 0} />;
+          })
+        )}
+      </Cartao>
     </Tela>
   );
 }
 
-function AcaoBarra({ icone, texto, destino }: { icone: NomeIcone; texto: string; destino: Href }) {
+function Parte({ rotulo, cor, centavos, separador }: { rotulo: string; cor: string; centavos: number; separador?: boolean }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[styles.parte, separador && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: theme.border }]}
+      accessible
+      accessibilityLabel={`${rotulo}: ${formatarCentavos(centavos)}`}>
+      <View style={styles.rotuloParte}>
+        <View style={[styles.bolinha, { backgroundColor: cor }]} />
+        <ThemedText type="small" themeColor="textSecondary">
+          {rotulo}
+        </ThemedText>
+      </View>
+      <ThemedText type="smallBold" style={styles.valorParte} numberOfLines={1}>
+        {formatarCentavos(centavos).replace(/,\d\d$/, '')}
+      </ThemedText>
+    </View>
+  );
+}
+
+function BotaoPilula({ texto, aoTocar }: { texto: string; aoTocar: () => void }) {
   const theme = useTheme();
   return (
     <Pressable
-      onPress={() => router.push(destino)}
+      onPress={aoTocar}
       accessibilityRole="button"
-      accessibilityLabel={texto}
-      style={({ pressed }) => [styles.acao, pressed && styles.pressionado]}>
-      <Icone nome={icone} cor={theme.onAccent} tamanho={22} />
+      style={({ pressed }) => [styles.pilula, { backgroundColor: theme.accent }, pressed && styles.pressionado]}>
       <ThemedText type="smallBold" style={{ color: theme.onAccent }}>
         {texto}
       </ThemedText>
@@ -199,37 +245,47 @@ function AcaoBarra({ icone, texto, destino }: { icone: NomeIcone; texto: string;
   );
 }
 
-function LinhaTransacao({ transacao: t, impostosCentavos }: { transacao: Transacao; impostosCentavos: number }) {
+function LinhaLancamento({
+  transacao: t,
+  impostosCentavos,
+  origem,
+  separador,
+}: {
+  transacao: Transacao;
+  impostosCentavos: number;
+  origem: OrigemImposto | null;
+  separador: boolean;
+}) {
   const theme = useTheme();
   const receita = t.tipo === 'receita';
   const titulo = t.descricao || t.categoriaNome;
+  const selo = seloDoLancamento(t, origem);
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/lancamento/[id]', params: { id: String(t.id) } })}
       accessibilityRole="button"
-      accessibilityLabel={`${titulo}, ${receita ? 'receita' : 'despesa'} de ${formatarCentavos(t.valorCentavos)}, ${formatarDataCurta(t.data)}${impostosCentavos > 0 ? `, ${formatarCentavos(impostosCentavos)} de impostos` : ''}`}
-      style={({ pressed }) => pressed && styles.pressionado}>
-      <Cartao style={styles.linhaCartao}>
-        <IconeCirculo icone={visualCategoria(t.categoriaNome, t.categoriaId).icone} cor={theme.text} tamanho={36} />
-        <View style={styles.flex}>
-          <ThemedText type="small" numberOfLines={1}>
-            {titulo}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {formatarDataCurta(t.data)}
-          </ThemedText>
-        </View>
-        <View style={styles.valor}>
-          <ThemedText type="smallBold" numberOfLines={1} style={receita && { color: theme.positive }}>
-            {receita ? '+' : '−'} {formatarCentavos(t.valorCentavos)}
-          </ThemedText>
-          {impostosCentavos > 0 && (
-            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-              {formatarCentavos(impostosCentavos)} imp.
-            </ThemedText>
-          )}
-        </View>
-      </Cartao>
+      accessibilityLabel={`${titulo}, ${receita ? 'receita' : 'despesa'} de ${formatarCentavos(t.valorCentavos)}, ${formatarDataCurta(t.data)}${impostosCentavos > 0 ? `, ${formatarCentavos(impostosCentavos)} de impostos` : ''}. ${selo.texto}`}
+      style={({ pressed }) => [
+        styles.item,
+        separador && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
+        pressed && styles.pressionado,
+      ]}>
+      <View style={[styles.quadrado, { borderColor: theme.border }]}>
+        <Icone nome={visualCategoria(t.categoriaNome, t.categoriaId).icone} cor={theme.text} tamanho={18} />
+      </View>
+      <View style={styles.flex}>
+        <ThemedText type="small" style={styles.tituloItem} numberOfLines={1}>
+          {titulo}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+          {formatarDataCurta(t.data)}
+          {impostosCentavos > 0 ? ` · ${formatarCentavos(impostosCentavos)} imp.` : ''}
+        </ThemedText>
+      </View>
+      <View style={styles.direita}>
+        <Valor centavos={t.valorCentavos} sinal={receita ? '+' : undefined} style={styles.valorItem} />
+        <Selo texto={selo.texto} tom={selo.tom} />
+      </View>
     </Pressable>
   );
 }
@@ -241,75 +297,109 @@ const styles = StyleSheet.create({
   pressionado: {
     opacity: 0.7,
   },
-  marca: {
+  topo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
   },
-  nomeApp: {
-    flex: 1,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: 800,
+  mascote: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.one,
   },
-  ola: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.three,
-  },
-  saudacao: {
-    fontSize: 17,
-    lineHeight: 24,
-  },
-  saldo: {
+  nome: {
     fontSize: 24,
     lineHeight: 30,
     fontWeight: 700,
   },
-  barra: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    borderRadius: 8,
-    paddingVertical: Spacing.three,
-  },
-  acao: {
-    alignItems: 'center',
-    gap: Spacing.one,
-    minWidth: 80,
-    minHeight: 44,
-  },
-  grade: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    rowGap: Spacing.three,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.one,
-  },
-  atalho: {
-    width: '25%',
-    alignItems: 'center',
-    gap: Spacing.one,
-    minHeight: 52,
-  },
-  textoAtalho: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  banner: {
+  linhaTopo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    borderRadius: 8,
-    padding: Spacing.three,
   },
-  tituloBanner: {
-    fontSize: 17,
-    lineHeight: 24,
+  linhaValor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginTop: -Spacing.one,
+  },
+  valorGrande: {
+    fontSize: 34,
+    lineHeight: 42,
     fontWeight: 700,
+    letterSpacing: -0.5,
   },
-  detalheBanner: {
+  tres: {
+    flexDirection: 'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.three,
     marginTop: Spacing.one,
+  },
+  parte: {
+    flex: 1,
+    paddingLeft: Spacing.two + Spacing.one,
+    gap: Spacing.half,
+  },
+  rotuloParte: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  bolinha: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  valorParte: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  acoes: {
+    flexDirection: 'row',
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.one,
+    gap: 0,
+  },
+  acao: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 44,
+  },
+  circuloAcao: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoAcao: {
     fontSize: 12,
+    lineHeight: 16,
+  },
+  alerta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  quadrado: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tituloAlerta: {
+    fontSize: 15,
+  },
+  pilula: {
+    borderRadius: 999,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   secao: {
     flexDirection: 'row',
@@ -318,15 +408,40 @@ const styles = StyleSheet.create({
     marginTop: Spacing.one,
   },
   tituloSecao: {
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 24,
   },
-  linhaCartao: {
+  verTudo: {
+    borderRadius: 999,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one + Spacing.half,
+  },
+  lista: {
+    paddingVertical: Spacing.one,
+    gap: 0,
+  },
+  vazio: {
+    paddingVertical: Spacing.two,
+  },
+  item: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
+    minHeight: 64,
     paddingVertical: Spacing.two + Spacing.one,
   },
-  valor: {
+  tituloItem: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: 500,
+  },
+  direita: {
     alignItems: 'flex-end',
+    gap: Spacing.half,
+  },
+  valorItem: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: 700,
   },
 });

@@ -486,3 +486,17 @@ export function obterResumoImpostos(mes: string): ResumoImpostosInsight | null {
     maiorCategoria: maior && maior.impostosCentavos > 0 ? { nome: maior.categoria, impostosCentavos: maior.impostosCentavos } : null,
   };
 }
+
+/** Carga de impostos dos últimos meses (do mais antigo ao atual), para o minigráfico do Início. */
+export function obterHistoricoImpostos(mes: string, meses = 6): { mes: string; centavos: number }[] {
+  carregarClassificacoes();
+  const perfis = mapaDePerfis();
+  const fixos = calcularImpostosFixosDoMes(obterImpostosFixos());
+  const rendaPerfil = obterPerfil()?.rendaMensalCentavos ?? null;
+  const lista: { mes: string; centavos: number }[] = [];
+  for (let i = meses - 1; i >= 0; i--) {
+    const m = somarMeses(mes, -i);
+    lista.push({ mes: m, centavos: Math.round(totalDoMes(m, perfis, fixos, rendaPerfil).carga) });
+  }
+  return lista;
+}

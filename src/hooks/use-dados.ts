@@ -22,6 +22,7 @@ import { obterAnaliseSalva, obterEvolucao } from '@/services/evolucao-service';
 import { obterForum, obterTopico } from '@/services/forum-service';
 import { obterJornada } from '@/services/gamificacao-service';
 import {
+  obterHistoricoImpostos,
   obterImpostometro,
   obterImpostosDoLancamento,
   obterImpostosDosLancamentos,
@@ -116,6 +117,12 @@ export function useCpfNaNota(ano: number) {
 export function useAnalisePrecos() {
   const versao = useVersaoDados();
   return useMemo(() => obterAnalisePrecos(), [versao]);
+}
+
+/** Carga de impostos dos últimos 6 meses (minigráfico). */
+export function useHistoricoImpostos(mes: string) {
+  const versao = useVersaoDados();
+  return useMemo(() => obterHistoricoImpostos(mes), [versao, mes]);
 }
 
 export function useImpostometro(mes: string) {

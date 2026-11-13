@@ -6,93 +6,102 @@
 import { Platform } from 'react-native';
 
 export const Colors = {
-  // Paleta "Branco e rosa": superfícies brancas, rosa como cor principal, layout plano no estilo
-  // editorial (cartões sólidos com cantos pouco arredondados e botões retangulares).
+  // Paleta "Aconchego": creme quente, tinta marrom-escura e rosa como destaque; cartões brancos bem
+  // arredondados com sombra difusa. O escuro usa marrom quase preto com texto creme (alto contraste).
   // Contrastes (WCAG AA): text, textSecondary, accentText e onAccent ≥ 4,5:1 nos dois temas.
   light: {
-    text: '#21141A',
-    background: '#FFF9FB',
+    text: '#2B1E1A',
+    background: '#FBF6F1',
     backgroundElement: '#FFFFFF',
-    backgroundSelected: '#FCEBF1',
-    border: '#F2E1E8',
-    textSecondary: '#7E6872',
-    /** Botões, barra de ações e elementos ativos */
-    accent: '#C2255C',
-    /** Texto/ícone sobre o accent */
+    backgroundSelected: '#F2E9E2',
+    border: '#F1E8E1',
+    textSecondary: '#76665E',
+    /** Centavos e números de apoio, em tom bem apagado */
+    textMuted: '#C2B3AA',
+    /** Botões principais e elementos ativos */
+    accent: '#C23F6E',
     onAccent: '#FFFFFF',
     /** Links e textos de destaque */
-    accentText: '#B0204F',
-    /** Ícones decorativos (círculos, anéis) */
-    brand: '#C2255C',
-    positive: '#2E7A4B',
-    negative: '#B3261E',
-    accentSoft: '#FFE6EE',
-    positiveSoft: '#E3EFE4',
-    negativeSoft: '#FBE3E1',
-    /** Área de destaque clara (topo de telas de ação, círculos de ícone) */
-    area: '#FFE6EE',
-    /** Banner do Impostômetro e o texto sobre ele */
-    banner: '#FFC4D6',
-    onBanner: '#21141A',
-    /** Cartões de destaque com texto claro, nos dois temas */
-    heroi: '#C2255C',
-    gradienteInicio: '#C2255C',
-    gradienteFim: '#A81D4F',
-    brilho: 'rgba(33, 20, 26, 0.08)',
-    /** Vidro (opcional nas Preferências) */
+    accentText: '#B0335F',
+    /** Rosa decorativo (gráficos, mascote, ícones) */
+    brand: '#E0628F',
+    positive: '#3C8A5A',
+    negative: '#C0392B',
+    accentSoft: '#FFEEF3',
+    positiveSoft: '#F0F8F2',
+    negativeSoft: '#FDEDEB',
+    positiveBorder: '#CBE6D3',
+    warning: '#A86A1E',
+    warningSoft: '#FFF8EC',
+    warningBorder: '#F1DCB8',
+    accentBorder: '#F7CFDC',
+    area: '#FFEEF3',
+    banner: '#FFE1EA',
+    onBanner: '#2B1E1A',
+    heroi: '#C23F6E',
+    gradienteInicio: '#C23F6E',
+    gradienteFim: '#A8335D',
+    /** Sombra difusa dos cartões */
+    brilho: 'rgba(120, 80, 60, 0.08)',
     vidro: 'rgba(255, 255, 255, 0.62)',
     vidroBorda: 'rgba(255, 255, 255, 0.9)',
     vidroBrilho: 'rgba(255, 255, 255, 0.6)',
-    fundoMancha1: 'rgba(255, 170, 200, 0.55)',
-    fundoMancha2: 'rgba(255, 214, 228, 0.6)',
-    fundoMancha3: 'rgba(214, 51, 108, 0.22)',
+    fundoMancha1: 'rgba(255, 180, 205, 0.5)',
+    fundoMancha2: 'rgba(255, 222, 200, 0.55)',
+    fundoMancha3: 'rgba(224, 98, 143, 0.2)',
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#F2E1E8',
-    chartBaseline: '#D9C2CC',
+    chartGrid: '#F1E8E1',
+    chartBaseline: '#DCCDC4',
   },
   dark: {
-    text: '#F8EEF2',
-    background: '#141012',
-    backgroundElement: '#1F181C',
-    backgroundSelected: '#2C2228',
-    border: '#30252B',
-    textSecondary: '#B6A3AC',
-    accent: '#F06A9B',
-    onAccent: '#1A0F15',
-    accentText: '#F48DB2',
-    brand: '#F06A9B',
-    positive: '#6FCF97',
-    negative: '#F28B82',
-    accentSoft: '#3A1F2C',
-    positiveSoft: '#14271C',
-    negativeSoft: '#331A1A',
-    area: '#2B1C24',
-    banner: '#F2A7C1',
-    onBanner: '#1A0F15',
-    heroi: '#8E1E48',
-    gradienteInicio: '#8E1E48',
-    gradienteFim: '#6E1638',
-    brilho: 'rgba(0, 0, 0, 0.4)',
-    vidro: 'rgba(40, 30, 36, 0.55)',
+    text: '#FBF3EE',
+    background: '#16110F',
+    backgroundElement: '#241D1A',
+    backgroundSelected: '#2E2622',
+    border: '#352C28',
+    textSecondary: '#C9B9B0',
+    textMuted: '#8E7E76',
+    accent: '#FF7BA6',
+    onAccent: '#16110F',
+    accentText: '#FF94B8',
+    brand: '#FF7BA6',
+    positive: '#6EDC97',
+    negative: '#FF8A7A',
+    accentSoft: '#2E1820',
+    positiveSoft: '#132A1D',
+    negativeSoft: '#2E1714',
+    positiveBorder: '#24513A',
+    warning: '#F6C26B',
+    warningSoft: '#2A2010',
+    warningBorder: '#5A4524',
+    accentBorder: '#5B2E3D',
+    area: '#2E1820',
+    banner: '#F7B6CB',
+    onBanner: '#16110F',
+    heroi: '#8E2C50',
+    gradienteInicio: '#8E2C50',
+    gradienteFim: '#73223F',
+    brilho: 'rgba(0, 0, 0, 0)',
+    vidro: 'rgba(44, 34, 30, 0.6)',
     vidroBorda: 'rgba(255, 255, 255, 0.12)',
     vidroBrilho: 'rgba(255, 255, 255, 0.07)',
-    fundoMancha1: 'rgba(240, 106, 155, 0.30)',
-    fundoMancha2: 'rgba(142, 30, 72, 0.35)',
-    fundoMancha3: 'rgba(242, 167, 193, 0.18)',
+    fundoMancha1: 'rgba(255, 123, 166, 0.25)',
+    fundoMancha2: 'rgba(160, 90, 60, 0.3)',
+    fundoMancha3: 'rgba(247, 182, 203, 0.15)',
     statusGood: '#0ca30c',
     statusWarning: '#fab219',
     statusCritical: '#d03b3b',
-    chartGrid: '#2E242A',
-    chartBaseline: '#4A3B43',
+    chartGrid: '#352C28',
+    chartBaseline: '#4D413B',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /** Cores de fundo do avatar (todas com bom contraste para texto branco). */
-export const AvatarColors = ['#C2255C', '#21141A', '#2E7A4B', '#3D5A80', '#A0522D', '#6B3FA0'] as const;
+export const AvatarColors = ['#C23F6E', '#2B1E1A', '#3C8A5A', '#3D5A80', '#A0522D', '#6B3FA0'] as const;
 
 /**
  * Cores para séries de gráficos (identidade de cada categoria), sempre nesta ordem.

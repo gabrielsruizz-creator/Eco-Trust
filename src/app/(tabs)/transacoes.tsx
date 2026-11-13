@@ -5,7 +5,10 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { FolhaCalendario } from '@/components/calendario';
 import { Chip } from '@/components/chip';
 import { Icone } from '@/components/icone';
-import { Botao, Cartao, IconeCirculo, Segmentado, Tela } from '@/components/tela';
+import { Selo, seloDoLancamento } from '@/components/selo';
+import { Valor } from '@/components/valor';
+import type { OrigemImposto } from '@/services/impostometro-service';
+import { Botao, Cartao, Segmentado, Tela } from '@/components/tela';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesColors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -220,7 +223,13 @@ export default function TransacoesScreen() {
           </ThemedText>
           <Cartao style={styles.cartaoDia}>
             {grupo.transacoes.map((t, i) => (
-              <ItemTransacao key={t.id} transacao={t} separador={i > 0} impostosCentavos={impostos.get(t.id)?.centavos ?? 0} />
+              <ItemTransacao
+                key={t.id}
+                transacao={t}
+                separador={i > 0}
+                impostosCentavos={impostos.get(t.id)?.centavos ?? 0}
+                origem={impostos.get(t.id)?.origem ?? null}
+              />
             ))}
           </Cartao>
         </View>
@@ -241,11 +250,13 @@ function ItemTransacao({
   transacao: t,
   separador,
   impostosCentavos,
+  origem,
 }: {
   transacao: Transacao;
   separador: boolean;
   /** Impostos da despesa (da nota ou estimados); 0 em receitas */
   impostosCentavos: number;
+  origem: OrigemImposto | null;
 }) {
   const theme = useTheme();
   const esquema = useColorScheme() === 'light' ? 'light' : 'dark';
@@ -265,31 +276,21 @@ function ItemTransacao({
         separador && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
         pressed && styles.pressionado,
       ]}>
-      <IconeCirculo icone={visual.icone} cor={SeriesColors[esquema][visual.cor]} />
+      <View style={[styles.quadrado, { borderColor: theme.border }]}>
+        <Icone nome={visual.icone} cor={SeriesColors[esquema][visual.cor]} tamanho={18} />
+      </View>
       <View style={styles.flex}>
-        <ThemedText type="smallBold" numberOfLines={1}>
+        <ThemedText type="small" style={styles.tituloItem} numberOfLines={1}>
           {titulo}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
           {t.categoriaNome}
-          {t.recorrente ? ' · Recorrente' : ''}
+          {impostosCentavos > 0 ? ` · ${formatarCentavos(impostosCentavos)} imp.` : hora ? ` · ${hora}` : ''}
         </ThemedText>
       </View>
       <View style={styles.valor}>
-        <ThemedText type="smallBold" style={{ color: receita ? theme.positive : theme.negative }}>
-          {receita ? '+' : '−'} {formatarCentavos(t.valorCentavos)}
-        </ThemedText>
-        {impostosCentavos > 0 ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {formatarCentavos(impostosCentavos)} imp.
-          </ThemedText>
-        ) : (
-          hora && (
-            <ThemedText type="small" themeColor="textSecondary">
-              {hora}
-            </ThemedText>
-          )
-        )}
+        <Valor centavos={t.valorCentavos} sinal={receita ? '+' : undefined} style={styles.valorItem} />
+        <Selo {...seloDoLancamento(t, origem)} />
       </View>
     </Pressable>
   );
@@ -437,5 +438,23 @@ const styles = StyleSheet.create({
   valor: {
     alignItems: 'flex-end',
     gap: Spacing.half,
+  },
+  quadrado: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tituloItem: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: 500,
+  },
+  valorItem: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: 700,
   },
 });
