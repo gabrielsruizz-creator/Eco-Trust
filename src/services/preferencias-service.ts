@@ -5,6 +5,7 @@
  */
 
 import * as Notifications from 'expo-notifications';
+import { AndroidImportance } from 'expo-notifications';
 import { Appearance, Platform } from 'react-native';
 
 import { lerConfiguracao, salvarConfiguracao } from '@/repositories/configuracoes-repository';
@@ -92,7 +93,7 @@ export async function agendarLembretes(p: Preferencias): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CANAL, {
       name: 'Lembretes',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: AndroidImportance.DEFAULT,
     });
   }
 

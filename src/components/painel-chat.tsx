@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type ScrollViewInstance,
 } from 'react-native';
 
 import { Botao } from '@/components/tela';
@@ -34,7 +35,7 @@ export function PainelChat() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const rolagem = useRef<ScrollView>(null);
+  const rolagem = useRef<ScrollViewInstance>(null);
 
   async function enviar(conteudo: string) {
     const pergunta = conteudo.trim();

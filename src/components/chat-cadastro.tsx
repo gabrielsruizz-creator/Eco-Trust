@@ -14,6 +14,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type ScrollViewInstance,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -50,7 +51,7 @@ export function ChatCadastro({ nomeConta, modo = 'cadastro' }: Props) {
   const [respostas, setRespostas] = useState<RespostasChat>({});
   const [historico, setHistorico] = useState<Troca[]>([]);
   const [erro, setErro] = useState<string | null>(null);
-  const rolagem = useRef<ScrollView>(null);
+  const rolagem = useRef<ScrollViewInstance>(null);
 
   const passo = passoAtual(respostas, nomeConta);
 

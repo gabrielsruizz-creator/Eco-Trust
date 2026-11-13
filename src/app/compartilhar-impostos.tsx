@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { isAvailableAsync, shareAsync } from 'expo-sharing';
 import { useRef, useState } from 'react';
-import { Alert, StyleSheet, Switch, View } from 'react-native';
+import { Alert, StyleSheet, Switch, View, type HostInstance } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
 import { LogoEcoTrust } from '@/components/logo-ecotrust';
@@ -32,7 +32,7 @@ export default function CompartilharImpostosScreen() {
   const imp = useImpostometro(mes);
   const [mostrarValores, setMostrarValores] = useState(true);
   const [gerando, setGerando] = useState(false);
-  const cartao = useRef<View>(null);
+  const cartao = useRef<HostInstance>(null);
   const nomeMes = nomeDoMes(mes);
 
   async function compartilhar() {
